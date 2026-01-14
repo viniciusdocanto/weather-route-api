@@ -4,9 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previsão de Rota (OpenStreetMap)</title>
+    <title>Previsão de Rota (Com Data)</title>
     <style>
-        /* --- ESTILOS VISUAIS --- */
         body {
             font-family: 'Segoe UI', sans-serif;
             max-width: 600px;
@@ -50,13 +49,13 @@
             font-size: 1rem;
         }
 
-        /* Loading Spinner simples */
+        /* Loading */
         .input-loading {
             background: url('https://i.gifer.com/ZZ5H.gif') no-repeat right 10px center;
             background-size: 20px;
         }
 
-        /* --- LISTA DE AUTOCOMPLETE --- */
+        /* Autocomplete */
         .autocomplete-list {
             position: absolute;
             border: 1px solid #d4d4d4;
@@ -71,7 +70,6 @@
             max-height: 250px;
             overflow-y: auto;
             display: none;
-            /* Escondido por padrão */
         }
 
         .autocomplete-list.active {
@@ -87,13 +85,6 @@
 
         .autocomplete-item:hover {
             background-color: #f1f1f1;
-        }
-
-        .autocomplete-item small {
-            display: block;
-            color: #888;
-            font-size: 0.8rem;
-            margin-top: 2px;
         }
 
         button {
@@ -114,7 +105,7 @@
             background: #1557b0;
         }
 
-        /* Timeline de Resultados */
+        /* Timeline */
         .timeline {
             margin-top: 2rem;
             position: relative;
@@ -150,7 +141,7 @@
             padding: 8px 12px;
             border-radius: 20px;
             font-size: 0.85rem;
-            min-width: 60px;
+            min-width: 80px;
             text-align: center;
             margin-right: 1rem;
         }
@@ -166,11 +157,12 @@
             display: block;
         }
 
-        .coords {
-            font-size: 0.75rem;
-            color: #888;
-            margin-top: 4px;
+        .city-meta {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 2px;
             display: block;
+            font-weight: 500;
         }
 
         .weather-box {
@@ -195,152 +187,128 @@
 <body>
 
     <div class="card">
-        <h1>🌍 WeatherTrip Free</h1>
+        <h1>📅 WeatherTrip Pro</h1>
 
         <div class="form-group">
             <label>Sair de:</label>
-            <input type="text" id="origin" placeholder="Digite a cidade..." autocomplete="off">
+            <input type="text" id="origin" placeholder="Cidade de origem..." autocomplete="off">
             <div id="origin-list" class="autocomplete-list"></div>
         </div>
 
         <div class="form-group">
             <label>Ir para:</label>
-            <input type="text" id="destination" placeholder="Digite a cidade..." autocomplete="off">
+            <input type="text" id="destination" placeholder="Cidade de destino..." autocomplete="off">
             <div id="destination-list" class="autocomplete-list"></div>
         </div>
 
-        <button onclick="calcularRota()">Ver Previsão da Viagem</button>
+        <div class="form-group">
+            <label>Data e Hora da Partida:</label>
+            <input type="datetime-local" id="trip-date">
+        </div>
+
+        <button onclick="calcularRota()">Ver Previsão</button>
     </div>
 
     <div id="results" class="timeline"></div>
 
     <script>
-        // --- 1. CONFIGURAÇÃO DO NOMINATIM (OSM) ---
-        // Debounce: Variável para armazenar o "timer" da digitação
+        // --- 1. CONFIGURAÇÃO DE DATA PADRÃO ---
+        // Preenche o campo de data automaticamente com "Agora"
+        window.onload = function () {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajuste fuso horário
+            document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
+        };
+
+        // --- 2. CONFIGURAÇÃO DO NOMINATIM ---
         let debounceTimer;
-
         async function searchAddress(query) {
-            if (!query || query.length < 3) return []; // Só busca se tiver 3+ letras
-
-            // API pública do Nominatim
+            if (!query || query.length < 3) return [];
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`;
-
             try {
                 const response = await fetch(url);
                 return await response.json();
-            } catch (e) {
-                console.error("Erro no OSM:", e);
-                return [];
-            }
+            } catch (e) { return []; }
         }
 
-        // --- 2. FUNÇÃO GENÉRICA DE AUTOCOMPLETE ---
         function setupAutocomplete(inputId, listId) {
             const input = document.getElementById(inputId);
             const list = document.getElementById(listId);
 
             input.addEventListener('input', function () {
                 const value = this.value;
-
-                // Limpa o timer anterior (o usuário ainda está digitando)
                 clearTimeout(debounceTimer);
+                if (!value) { list.classList.remove('active'); return; }
+                input.classList.add('input-loading');
 
-                if (!value) {
-                    list.classList.remove('active');
-                    return;
-                }
-
-                input.classList.add('input-loading'); // Mostra loading visual
-
-                // Só chama a API depois de 500ms de inatividade
                 debounceTimer = setTimeout(async () => {
                     const places = await searchAddress(value);
                     input.classList.remove('input-loading');
-
                     list.innerHTML = '';
-
                     if (places.length > 0) {
                         list.classList.add('active');
                         places.forEach(place => {
                             const item = document.createElement('div');
                             item.className = 'autocomplete-item';
-
-                            // Monta o texto (Cidade, Estado, País)
-                            const mainName = place.address.city || place.address.town || place.address.village || place.display_name.split(',')[0];
-                            const details = place.display_name;
-
-                            item.innerHTML = `<strong>${mainName}</strong><small>${details}</small>`;
-
+                            const mainName = place.address.city || place.address.town || place.display_name.split(',')[0];
+                            item.innerHTML = `<strong>${mainName}</strong><small>${place.display_name}</small>`;
                             item.addEventListener('click', () => {
-                                input.value = mainName; // Preenche o input
-                                // Aqui você poderia salvar latitude/longitude: place.lat, place.lon
+                                input.value = mainName;
                                 list.classList.remove('active');
                             });
-
                             list.appendChild(item);
                         });
-                    } else {
-                        list.classList.remove('active');
-                    }
-                }, 500); // Tempo de espera (Delay)
+                    } else list.classList.remove('active');
+                }, 500);
             });
-
-            // Fecha ao clicar fora
-            document.addEventListener('click', (e) => {
-                if (e.target !== input) list.classList.remove('active');
-            });
+            document.addEventListener('click', (e) => { if (e.target !== input) list.classList.remove('active'); });
         }
-
-        // Ativa nos inputs
         setupAutocomplete('origin', 'origin-list');
         setupAutocomplete('destination', 'destination-list');
 
-
-        // --- 3. BACKEND CONNECTION (Igual ao anterior) ---
+        // --- 3. CÁLCULO DA ROTA ---
         async function calcularRota() {
             const origin = document.getElementById('origin').value;
             const destination = document.getElementById('destination').value;
+            const date = document.getElementById('trip-date').value; // Pega a data escolhida
             const resultsDiv = document.getElementById('results');
 
-            if (!origin || !destination) { alert("Preencha tudo!"); return; }
+            if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
             resultsDiv.innerHTML = `
                 <div style="text-align:center; padding: 20px; color: #666;">
-                    <p><strong>Calculando rota e cidades...</strong></p>
-                    <small>Isso pode levar alguns segundos...</small>
-                    <br><br>
-                    <img src="https://i.gifer.com/ZZ5H.gif" width="30">
+                    <p><strong>Planejando viagem...</strong></p>
+                    <small>Consultando previsão para a data escolhida...</small>
+                    <br><br><img src="https://i.gifer.com/ZZ5H.gif" width="30">
                 </div>
             `;
 
             try {
+                // ENVIA A DATA NO JSON
                 const response = await fetch('http://localhost:3000/api/forecast', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ origin, destination })
+                    body: JSON.stringify({ origin, destination, date })
                 });
 
                 const data = await response.json();
                 resultsDiv.innerHTML = '';
 
-                if (data.error) {
-                    resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`;
-                    return;
-                }
-
-                if (data.length === 0) {
-                    resultsDiv.innerHTML = '<p>Nada encontrado.</p>'; return;
-                }
+                if (data.error) { resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`; return; }
+                if (data.length === 0) { resultsDiv.innerHTML = '<p>Nada encontrado.</p>'; return; }
 
                 data.forEach(item => {
+                    let kmText = (item.distanceFromStart === 0 || item.description === "Partida") ? "📍 Partida" : `🚗 Km ${item.distanceFromStart || '--'}`;
+
                     resultsDiv.innerHTML += `
                         <div class="timeline-item">
-                            <div class="time-badge">${item.formattedTime}</div>
-                            
-                            <div class="info">
-                                <span class="city-name" style="font-size: 1.1rem;">${item.locationName}</span>
+                            <div class="time-badge">
+                                ${item.formattedTime.split(' ')[0]}<br> <small>${item.formattedTime.split(' ')[1] || ''}</small>
                             </div>
-
+                            <div class="info">
+                                <span class="city-name">${item.locationName}</span>
+                                <span class="city-meta">${kmText}</span>
+                            </div>
                             <div class="weather-box">
                                 <span class="weather-temp">${item.weather.temp}°C</span>
                                 <span class="weather-cond">${item.weather.condition}</span>
@@ -350,7 +318,7 @@
 
             } catch (error) {
                 console.error(error);
-                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar ao servidor.</p>';
+                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar.</p>';
             }
         }
     </script>

@@ -7,91 +7,85 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- CONFIGURAÇÃO DO BANCO DE DADOS (SQLite) ---
+// --- 1. BANCO DE DADOS (Com nova coluna trip_date) ---
 const db = new sqlite3.Database('./weather_trip.db', (err) => {
-    if (err) console.error("Erro ao criar banco:", err.message);
-    else console.log("💾 Banco de dados conectado (SQLite).");
+    if (err) console.error("Erro DB:", err.message);
+    else console.log("💾 Banco conectado.");
 });
 
-// Cria a tabela se não existir
+// Atualizei a tabela para incluir 'trip_date'
 db.run(`CREATE TABLE IF NOT EXISTS route_cache (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     origin_text TEXT,
     dest_text TEXT,
+    trip_date TEXT, 
     data TEXT,
     created_at INTEGER
 )`);
 
-// --- CLASSE DE SERVIÇO ---
+// --- 2. SERVIÇO ---
 class RouteWeatherService {
     constructor() {
         this.CHECKPOINT_INTERVAL = 3600;
-        this.CACHE_TTL = 3600 * 1000; // 1 Hora em milissegundos
+        this.CACHE_TTL = 3600 * 1000; // 1 Hora
     }
 
-    // --- ORQUESTRADOR PRINCIPAL ---
-    async getRouteForecast(originText, destinationText) {
-        // 1. Normaliza o texto (tudo minúsculo para evitar duplicidade "SP" vs "sp")
+    // Recebe agora o parâmetro 'dateString'
+    async getRouteForecast(originText, destinationText, dateString) {
         const normOrigin = originText.trim().toLowerCase();
         const normDest = destinationText.trim().toLowerCase();
 
-        // 2. VERIFICA O CACHE (BANCO DE DADOS)
-        const cachedData = await this._checkCache(normOrigin, normDest);
+        // Define a data de partida (Se não vier nada, usa AGORA)
+        // Convertemos para ISO string simples (ex: 2023-10-25T14:00) para usar como chave de cache
+        const departureDate = dateString ? new Date(dateString) : new Date();
+        const departureIsoKey = departureDate.toISOString().slice(0, 13); // Cache por hora (yyyy-mm-ddThh)
+
+        // A. Checa Cache (Considerando a data!)
+        const cachedData = await this._checkCache(normOrigin, normDest, departureIsoKey);
         if (cachedData) {
-            console.log(`⚡ Usando dados do CACHE para: ${originText} -> ${destinationText}`);
+            console.log(`⚡ Cache hit: ${originText} -> ${destinationText} (${departureIsoKey})`);
             return cachedData;
         }
 
-        console.log(`🌍 Consultando APIs Externas para: ${originText} -> ${destinationText}`);
+        console.log(`🌍 Nova busca: ${originText} -> ${destinationText} em ${departureDate.toLocaleString()}`);
 
-        // 3. Se não tem no cache, faz todo o processo pesado...
+        // B. Busca APIs
         const origin = await this._getCoordinates(originText);
         const destination = await this._getCoordinates(destinationText);
 
         if (!origin || !destination) throw new Error("Cidades não encontradas.");
 
         const routeData = await this._getOSRMRoute(origin, destination);
-        const result = await this._processCheckpoints(routeData, new Date());
 
-        // 4. SALVA NO BANCO PARA A PRÓXIMA VEZ
-        this._saveToCache(normOrigin, normDest, result);
+        // C. Processa passando a data escolhida
+        const result = await this._processCheckpoints(routeData, departureDate);
+
+        // D. Salva no Cache
+        this._saveToCache(normOrigin, normDest, departureIsoKey, result);
 
         return result;
     }
 
-    // --- MÉTODOS DE BANCO DE DADOS (Promisified) ---
-    _checkCache(origin, dest) {
-        return new Promise((resolve, reject) => {
-            const query = `SELECT * FROM route_cache WHERE origin_text = ? AND dest_text = ? ORDER BY created_at DESC LIMIT 1`;
-            db.get(query, [origin, dest], (err, row) => {
-                if (err) return reject(err);
-
-                if (row) {
-                    const agora = Date.now();
-                    // Verifica se o cache ainda é válido (menos de 1 hora)
-                    if (agora - row.created_at < this.CACHE_TTL) {
-                        return resolve(JSON.parse(row.data)); // Retorna o JSON pronto
-                    } else {
-                        console.log("Old cache encontrado, mas expirado. Buscando novo...");
-                    }
+    // --- MÉTODOS DB ---
+    _checkCache(origin, dest, dateKey) {
+        return new Promise((resolve) => {
+            // Agora filtramos também pela DATA DA VIAGEM
+            const query = `SELECT * FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ? ORDER BY created_at DESC LIMIT 1`;
+            db.get(query, [origin, dest, dateKey], (err, row) => {
+                if (!err && row && (Date.now() - row.created_at < this.CACHE_TTL)) {
+                    return resolve(JSON.parse(row.data));
                 }
-                resolve(null); // Nada no cache ou expirado
+                resolve(null);
             });
         });
     }
 
-    _saveToCache(origin, dest, data) {
-        const query = `INSERT INTO route_cache (origin_text, dest_text, data, created_at) VALUES (?, ?, ?, ?)`;
-        const jsonStr = JSON.stringify(data);
-        const now = Date.now();
-
-        db.run(query, [origin, dest, jsonStr, now], function (err) {
-            if (err) console.error("Erro ao salvar cache:", err.message);
-            else console.log("💾 Rota salva no banco de dados!");
-        });
+    _saveToCache(origin, dest, dateKey, data) {
+        const query = `INSERT INTO route_cache (origin_text, dest_text, trip_date, data, created_at) VALUES (?, ?, ?, ?, ?)`;
+        db.run(query, [origin, dest, dateKey, JSON.stringify(data), Date.now()]);
     }
 
-    // --- APIs EXTERNAS (Mesma lógica anterior) ---
+    // --- APIs ---
     async _getCoordinates(query) {
         try {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
@@ -103,6 +97,7 @@ class RouteWeatherService {
     async _getOSRMRoute(start, end) {
         const url = `http://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
         const res = await axios.get(url);
+        if (!res.data.routes || !res.data.routes[0]) throw new Error("Rota não encontrada");
         return {
             duration: res.data.routes[0].duration,
             distance: res.data.routes[0].distance,
@@ -112,7 +107,6 @@ class RouteWeatherService {
 
     async _getCityName(lat, lng) {
         try {
-            // Pequeno delay para respeitar o Nominatim
             await new Promise(r => setTimeout(r, 800));
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
@@ -139,11 +133,17 @@ class RouteWeatherService {
         const checkpoints = [];
         let timeOffset = 0;
         const totalDuration = routeData.duration;
+        const totalDistance = routeData.distance;
         const pathPoints = routeData.path;
 
         while (timeOffset <= totalDuration) {
+            // AQUI É O PULO DO GATO:
+            // departureTime agora é a data que o usuário escolheu, não "agora"
             const futureDate = new Date(departureTime.getTime() + (timeOffset * 1000));
+
             const progress = timeOffset / totalDuration;
+            const currentDistKm = Math.floor((totalDistance * progress) / 1000);
+
             const pathIndex = Math.floor(progress * (pathPoints.length - 1));
             const rawCoords = pathPoints[pathIndex];
             const lat = rawCoords[1];
@@ -153,10 +153,11 @@ class RouteWeatherService {
             const cityName = await this._getCityName(lat, lng);
 
             checkpoints.push({
-                formattedTime: futureDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 lat: lat,
                 lng: lng,
                 locationName: cityName,
+                distanceFromStart: currentDistKm,
                 weather: {
                     temp: weather.temp,
                     condition: this._translateWMO(weather.code)
@@ -171,27 +172,26 @@ class RouteWeatherService {
     }
 
     _translateWMO(code) {
-        const table = {
-            0: "Céu Limpo ☀️", 1: "Ensolarado 🌤️", 2: "Parcialmente Nublado ⛅", 3: "Nublado ☁️",
-            45: "Nevoeiro 🌫️", 51: "Garoa 🌧️", 61: "Chuva Fraca ☔", 63: "Chuva ☔",
-            65: "Chuva Forte ⛈️", 80: "Pancadas 🌦️", 95: "Tempestade ⚡"
-        };
+        const table = { 0: "Limpo ☀️", 1: "Ensolarado 🌤️", 2: "Nublado ⛅", 3: "Encoberto ☁️", 45: "Nevoeiro 🌫️", 51: "Garoa 🌧️", 61: "Chuva Fraca ☔", 63: "Chuva ☔", 65: "Chuva Forte ⛈️", 80: "Pancadas 🌦️", 95: "Tempestade ⚡" };
         return table[code] || "Desconhecido";
     }
 }
 
+// --- 3. ENDPOINT ---
 const service = new RouteWeatherService();
 
 app.post('/api/forecast', async (req, res) => {
     try {
-        // Envia para o serviço (que agora decide se pega do cache ou da web)
-        const data = await service.getRouteForecast(req.body.origin, req.body.destination);
+        // Recebe também o campo 'date'
+        const { origin, destination, date } = req.body;
+        if (!origin || !destination) return res.status(400).json({ error: "Dados faltando" });
+
+        const data = await service.getRouteForecast(origin, destination, date);
         res.json(data);
     } catch (error) {
-        res.status(500).json({ error: "Erro: " + error.message });
+        console.error(error);
+        res.status(500).json({ error: "Erro interno: " + error.message });
     }
 });
 
-app.listen(3000, () => {
-    console.log('🚀 Servidor rodando com Banco de Dados SQLite');
-});
+app.listen(3000, () => console.log('🚀 Servidor rodando. (Não esqueça de apagar o .db antigo!)'));
