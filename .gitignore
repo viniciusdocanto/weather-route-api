@@ -1,0 +1,16 @@
+# Dependências do Node.js (Pesado, nunca deve ir para o Git)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Banco de Dados SQLite (Não queremos subir o cache local)
+*.db
+*.db-journal
+*.sqlite
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de Variáveis de Ambiente (Segurança futura)
+.env
