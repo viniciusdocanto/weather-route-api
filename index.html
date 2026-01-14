@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previsão de Rota (OpenStreetMap)</title>
+    <style>
+        /* --- ESTILOS VISUAIS --- */
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            max-width: 600px;
+            margin: 2rem auto;
+            background: #f0f2f5;
+            color: #333;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        /* Loading Spinner simples */
+        .input-loading {
+            background: url('https://i.gifer.com/ZZ5H.gif') no-repeat right 10px center;
+            background-size: 20px;
+        }
+
+        /* --- LISTA DE AUTOCOMPLETE --- */
+        .autocomplete-list {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            border-top: none;
+            z-index: 99;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            /* Escondido por padrão */
+        }
+
+        .autocomplete-list.active {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 0.95rem;
+        }
+
+        .autocomplete-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        .autocomplete-item small {
+            display: block;
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #1557b0;
+        }
+
+        /* Timeline de Resultados */
+        .timeline {
+            margin-top: 2rem;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 24px;
+            top: 15px;
+            bottom: 15px;
+            width: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .time-badge {
+            background: #e8f0fe;
+            color: #1a73e8;
+            font-weight: bold;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            min-width: 60px;
+            text-align: center;
+            margin-right: 1rem;
+        }
+
+        .info {
+            flex-grow: 1;
+        }
+
+        .city-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #202124;
+            display: block;
+        }
+
+        .coords {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .weather-box {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .weather-temp {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .weather-cond {
+            font-size: 0.8rem;
+            color: #666;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>🌍 WeatherTrip Free</h1>
+
+        <div class="form-group">
+            <label>Sair de:</label>
+            <input type="text" id="origin" placeholder="Digite a cidade..." autocomplete="off">
+            <div id="origin-list" class="autocomplete-list"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Ir para:</label>
+            <input type="text" id="destination" placeholder="Digite a cidade..." autocomplete="off">
+            <div id="destination-list" class="autocomplete-list"></div>
+        </div>
+
+        <button onclick="calcularRota()">Ver Previsão da Viagem</button>
+    </div>
+
+    <div id="results" class="timeline"></div>
+
+    <script>
+        // --- 1. CONFIGURAÇÃO DO NOMINATIM (OSM) ---
+        // Debounce: Variável para armazenar o "timer" da digitação
+        let debounceTimer;
+
+        async function searchAddress(query) {
+            if (!query || query.length < 3) return []; // Só busca se tiver 3+ letras
+
+            // API pública do Nominatim
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`;
+
+            try {
+                const response = await fetch(url);
+                return await response.json();
+            } catch (e) {
+                console.error("Erro no OSM:", e);
+                return [];
+            }
+        }
+
+        // --- 2. FUNÇÃO GENÉRICA DE AUTOCOMPLETE ---
+        function setupAutocomplete(inputId, listId) {
+            const input = document.getElementById(inputId);
+            const list = document.getElementById(listId);
+
+            input.addEventListener('input', function () {
+                const value = this.value;
+
+                // Limpa o timer anterior (o usuário ainda está digitando)
+                clearTimeout(debounceTimer);
+
+                if (!value) {
+                    list.classList.remove('active');
+                    return;
+                }
+
+                input.classList.add('input-loading'); // Mostra loading visual
+
+                // Só chama a API depois de 500ms de inatividade
+                debounceTimer = setTimeout(async () => {
+                    const places = await searchAddress(value);
+                    input.classList.remove('input-loading');
+
+                    list.innerHTML = '';
+
+                    if (places.length > 0) {
+                        list.classList.add('active');
+                        places.forEach(place => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+
+                            // Monta o texto (Cidade, Estado, País)
+                            const mainName = place.address.city || place.address.town || place.address.village || place.display_name.split(',')[0];
+                            const details = place.display_name;
+
+                            item.innerHTML = `<strong>${mainName}</strong><small>${details}</small>`;
+
+                            item.addEventListener('click', () => {
+                                input.value = mainName; // Preenche o input
+                                // Aqui você poderia salvar latitude/longitude: place.lat, place.lon
+                                list.classList.remove('active');
+                            });
+
+                            list.appendChild(item);
+                        });
+                    } else {
+                        list.classList.remove('active');
+                    }
+                }, 500); // Tempo de espera (Delay)
+            });
+
+            // Fecha ao clicar fora
+            document.addEventListener('click', (e) => {
+                if (e.target !== input) list.classList.remove('active');
+            });
+        }
+
+        // Ativa nos inputs
+        setupAutocomplete('origin', 'origin-list');
+        setupAutocomplete('destination', 'destination-list');
+
+
+        // --- 3. BACKEND CONNECTION (Igual ao anterior) ---
+        async function calcularRota() {
+            const origin = document.getElementById('origin').value;
+            const destination = document.getElementById('destination').value;
+            const resultsDiv = document.getElementById('results');
+
+            if (!origin || !destination) { alert("Preencha tudo!"); return; }
+
+            resultsDiv.innerHTML = `
+                <div style="text-align:center; padding: 20px; color: #666;">
+                    <p><strong>Calculando rota e cidades...</strong></p>
+                    <small>Isso pode levar alguns segundos...</small>
+                    <br><br>
+                    <img src="https://i.gifer.com/ZZ5H.gif" width="30">
+                </div>
+            `;
+
+            try {
+                const response = await fetch('http://localhost:3000/api/forecast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ origin, destination })
+                });
+
+                const data = await response.json();
+                resultsDiv.innerHTML = '';
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`;
+                    return;
+                }
+
+                if (data.length === 0) {
+                    resultsDiv.innerHTML = '<p>Nada encontrado.</p>'; return;
+                }
+
+                data.forEach(item => {
+                    resultsDiv.innerHTML += `
+                        <div class="timeline-item">
+                            <div class="time-badge">${item.formattedTime}</div>
+                            
+                            <div class="info">
+                                <span class="city-name" style="font-size: 1.1rem;">${item.locationName}</span>
+                            </div>
+
+                            <div class="weather-box">
+                                <span class="weather-temp">${item.weather.temp}°C</span>
+                                <span class="weather-cond">${item.weather.condition}</span>
+                            </div>
+                        </div>`;
+                });
+
+            } catch (error) {
+                console.error(error);
+                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar ao servidor.</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>
