@@ -34,5 +34,5 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 
 1. **Clone o repositório:**
    ```bash
-   git clone [https://github.com/viniciusdocanto/weather-route-api.git](https://github.com/viniciusdocanto/weather-route-api.git)
+   git clone https://github.com/viniciusdocanto/weather-route-api.git
    cd weather-route-api
