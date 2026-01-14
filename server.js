@@ -7,13 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// --- 1. BANCO DE DADOS (Com nova coluna trip_date) ---
+// --- 1. BANCO DE DADOS ---
 const db = new sqlite3.Database('./weather_trip.db', (err) => {
     if (err) console.error("Erro DB:", err.message);
     else console.log("💾 Banco conectado.");
 });
 
-// Atualizei a tabela para incluir 'trip_date'
 db.run(`CREATE TABLE IF NOT EXISTS route_cache (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     origin_text TEXT,
@@ -23,53 +22,51 @@ db.run(`CREATE TABLE IF NOT EXISTS route_cache (
     created_at INTEGER
 )`);
 
-// --- 2. SERVIÇO ---
+// --- 2. MAPA DE ESTADOS (TRADUTOR) ---
+const BRAZIL_STATES = {
+    "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE",
+    "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT",
+    "Mato Grosso do Sul": "MS", "Minas Gerais": "MG", "Pará": "PA", "Paraíba": "PB", "Paraná": "PR",
+    "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+    "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR", "Santa Catarina": "SC",
+    "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO"
+};
+
+// --- 3. SERVIÇO ---
 class RouteWeatherService {
     constructor() {
         this.CHECKPOINT_INTERVAL = 3600;
-        this.CACHE_TTL = 3600 * 1000; // 1 Hora
+        this.CACHE_TTL = 3600 * 1000;
     }
 
-    // Recebe agora o parâmetro 'dateString'
     async getRouteForecast(originText, destinationText, dateString) {
         const normOrigin = originText.trim().toLowerCase();
         const normDest = destinationText.trim().toLowerCase();
-
-        // Define a data de partida (Se não vier nada, usa AGORA)
-        // Convertemos para ISO string simples (ex: 2023-10-25T14:00) para usar como chave de cache
         const departureDate = dateString ? new Date(dateString) : new Date();
-        const departureIsoKey = departureDate.toISOString().slice(0, 13); // Cache por hora (yyyy-mm-ddThh)
+        const departureIsoKey = departureDate.toISOString().slice(0, 13);
 
-        // A. Checa Cache (Considerando a data!)
         const cachedData = await this._checkCache(normOrigin, normDest, departureIsoKey);
         if (cachedData) {
-            console.log(`⚡ Cache hit: ${originText} -> ${destinationText} (${departureIsoKey})`);
+            console.log(`⚡ Cache hit: ${originText} -> ${destinationText}`);
             return cachedData;
         }
 
-        console.log(`🌍 Nova busca: ${originText} -> ${destinationText} em ${departureDate.toLocaleString()}`);
+        console.log(`🌍 Nova busca: ${originText} -> ${destinationText}`);
 
-        // B. Busca APIs
         const origin = await this._getCoordinates(originText);
         const destination = await this._getCoordinates(destinationText);
 
-        if (!origin || !destination) throw new Error("Cidades não encontradas.");
+        if (!origin || !destination) throw new Error("Cidades não encontradas no Brasil.");
 
         const routeData = await this._getOSRMRoute(origin, destination);
-
-        // C. Processa passando a data escolhida
         const result = await this._processCheckpoints(routeData, departureDate);
 
-        // D. Salva no Cache
         this._saveToCache(normOrigin, normDest, departureIsoKey, result);
-
         return result;
     }
 
-    // --- MÉTODOS DB ---
     _checkCache(origin, dest, dateKey) {
         return new Promise((resolve) => {
-            // Agora filtramos também pela DATA DA VIAGEM
             const query = `SELECT * FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ? ORDER BY created_at DESC LIMIT 1`;
             db.get(query, [origin, dest, dateKey], (err, row) => {
                 if (!err && row && (Date.now() - row.created_at < this.CACHE_TTL)) {
@@ -85,10 +82,9 @@ class RouteWeatherService {
         db.run(query, [origin, dest, dateKey, JSON.stringify(data), Date.now()]);
     }
 
-    // --- APIs ---
     async _getCoordinates(query) {
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
             return res.data[0] ? { lat: res.data[0].lat, lng: res.data[0].lon } : null;
         } catch (e) { return null; }
@@ -105,14 +101,28 @@ class RouteWeatherService {
         };
     }
 
+    // --- MUDANÇA PRINCIPAL AQUI ---
     async _getCityName(lat, lng) {
         try {
             await new Promise(r => setTimeout(r, 800));
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
             const addr = res.data.address;
-            return addr.city || addr.town || addr.village || addr.municipality || addr.state || "Estrada";
-        } catch (error) { return "Local desconhecido"; }
+
+            // 1. Pega o nome da cidade
+            const city = addr.city || addr.town || addr.village || addr.municipality || "Local";
+
+            // 2. Pega o nome do estado (Ex: "São Paulo")
+            const fullState = addr.state;
+
+            // 3. Traduz para Sigla (Ex: "SP") usando nosso mapa
+            // Se não achar no mapa (ex: erro de digitação da API), usa o nome completo mesmo
+            const uf = BRAZIL_STATES[fullState] || fullState || "";
+
+            // Retorna formato "Campinas, SP"
+            return uf ? `${city}, ${uf}` : city;
+
+        } catch (error) { return "Estrada desconhecida"; }
     }
 
     async _getWeather(lat, lng, date) {
@@ -137,10 +147,7 @@ class RouteWeatherService {
         const pathPoints = routeData.path;
 
         while (timeOffset <= totalDuration) {
-            // AQUI É O PULO DO GATO:
-            // departureTime agora é a data que o usuário escolheu, não "agora"
             const futureDate = new Date(departureTime.getTime() + (timeOffset * 1000));
-
             const progress = timeOffset / totalDuration;
             const currentDistKm = Math.floor((totalDistance * progress) / 1000);
 
@@ -156,7 +163,7 @@ class RouteWeatherService {
                 formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 lat: lat,
                 lng: lng,
-                locationName: cityName,
+                locationName: cityName, // Agora já vem formatado com UF
                 distanceFromStart: currentDistKm,
                 weather: {
                     temp: weather.temp,
@@ -177,12 +184,10 @@ class RouteWeatherService {
     }
 }
 
-// --- 3. ENDPOINT ---
 const service = new RouteWeatherService();
 
 app.post('/api/forecast', async (req, res) => {
     try {
-        // Recebe também o campo 'date'
         const { origin, destination, date } = req.body;
         if (!origin || !destination) return res.status(400).json({ error: "Dados faltando" });
 
@@ -194,4 +199,4 @@ app.post('/api/forecast', async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('🚀 Servidor rodando. (Não esqueça de apagar o .db antigo!)'));
+app.listen(3000, () => console.log('🚀 Servidor rodando.'));

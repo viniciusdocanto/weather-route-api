@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previsão de Rota (Com Data)</title>
+    <title>Previsão de Rota (Brasil)</title>
     <style>
         body {
             font-family: 'Segoe UI', sans-serif;
@@ -49,13 +49,11 @@
             font-size: 1rem;
         }
 
-        /* Loading */
         .input-loading {
             background: url('https://i.gifer.com/ZZ5H.gif') no-repeat right 10px center;
             background-size: 20px;
         }
 
-        /* Autocomplete */
         .autocomplete-list {
             position: absolute;
             border: 1px solid #d4d4d4;
@@ -87,6 +85,10 @@
             background-color: #f1f1f1;
         }
 
+        .autocomplete-item small {
+            display: block;
+        }
+
         button {
             width: 100%;
             padding: 14px;
@@ -105,7 +107,6 @@
             background: #1557b0;
         }
 
-        /* Timeline */
         .timeline {
             margin-top: 2rem;
             position: relative;
@@ -177,9 +178,10 @@
         }
 
         .weather-cond {
-            font-size: 0.8rem;
+            font-size: 1rem;
             color: #666;
             display: block;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -187,7 +189,7 @@
 <body>
 
     <div class="card">
-        <h1>📅 WeatherTrip Pro</h1>
+        <h1>WeatherTrip</h1>
 
         <div class="form-group">
             <label>Sair de:</label>
@@ -207,24 +209,25 @@
         </div>
 
         <button onclick="calcularRota()">Ver Previsão</button>
+        <small style="display:block; text-align:center; margin-top:10px; color:#999;" id="api-status"></small>
     </div>
 
     <div id="results" class="timeline"></div>
 
     <script>
-        // --- 1. CONFIGURAÇÃO DE DATA PADRÃO ---
-        // Preenche o campo de data automaticamente com "Agora"
         window.onload = function () {
             const now = new Date();
-            now.setMinutes(now.getMinutes() - now.getTimezoneOffset()); // Ajuste fuso horário
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
         };
 
-        // --- 2. CONFIGURAÇÃO DO NOMINATIM ---
         let debounceTimer;
+
+        // --- 1. Autocomplete (Nominatim) ---
         async function searchAddress(query) {
             if (!query || query.length < 3) return [];
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`;
+            // Filtro Brasil
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=br`;
             try {
                 const response = await fetch(url);
                 return await response.json();
@@ -250,10 +253,14 @@
                         places.forEach(place => {
                             const item = document.createElement('div');
                             item.className = 'autocomplete-item';
-                            const mainName = place.address.city || place.address.town || place.display_name.split(',')[0];
-                            item.innerHTML = `<strong>${mainName}</strong><small>${place.display_name}</small>`;
+                            const address = place.address;
+                            const mainName = address.city || address.town || address.village || place.display_name.split(',')[0];
+                            const state = address.state || '';
+                            const displayText = state ? `${mainName} - ${state}` : mainName;
+
+                            item.innerHTML = `<strong>${displayText}</strong><small>${place.display_name}</small>`;
                             item.addEventListener('click', () => {
-                                input.value = mainName;
+                                input.value = displayText;
                                 list.classList.remove('active');
                             });
                             list.appendChild(item);
@@ -266,26 +273,37 @@
         setupAutocomplete('origin', 'origin-list');
         setupAutocomplete('destination', 'destination-list');
 
-        // --- 3. CÁLCULO DA ROTA ---
+
+        // --- 2. Lógica de Rota e URL Dinâmica ---
         async function calcularRota() {
             const origin = document.getElementById('origin').value;
             const destination = document.getElementById('destination').value;
-            const date = document.getElementById('trip-date').value; // Pega a data escolhida
+            const date = document.getElementById('trip-date').value;
             const resultsDiv = document.getElementById('results');
+
+            // --- DETECÇÃO DE AMBIENTE ---
+            const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+            // Define qual URL usar baseado em onde o site está aberto
+            const API_URL = isLocal
+                ? 'http://localhost:3000/api/forecast'
+                : 'https://weather-route-api.onrender.com/api/forecast';
+
+            // Feedback visual de qual API está sendo usada (para debug)
+            console.log(`📡 Usando API: ${API_URL}`);
 
             if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
             resultsDiv.innerHTML = `
                 <div style="text-align:center; padding: 20px; color: #666;">
                     <p><strong>Planejando viagem...</strong></p>
-                    <small>Consultando previsão para a data escolhida...</small>
+                    <small>Buscando previsão no território nacional...</small>
                     <br><br><img src="https://i.gifer.com/ZZ5H.gif" width="30">
                 </div>
             `;
 
             try {
-                // ENVIA A DATA NO JSON
-                const response = await fetch('http://localhost:3000/api/forecast', {
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ origin, destination, date })
@@ -303,7 +321,8 @@
                     resultsDiv.innerHTML += `
                         <div class="timeline-item">
                             <div class="time-badge">
-                                ${item.formattedTime.split(' ')[0]}<br> <small>${item.formattedTime.split(' ')[1] || ''}</small>
+                                ${item.formattedTime.split(' ')[0]}<br>
+                                <small>${item.formattedTime.split(' ')[1] || ''}</small>
                             </div>
                             <div class="info">
                                 <span class="city-name">${item.locationName}</span>
@@ -318,7 +337,7 @@
 
             } catch (error) {
                 console.error(error);
-                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar.</p>';
+                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar com a API.</p>';
             }
         }
     </script>
