@@ -22,7 +22,6 @@ db.run(`CREATE TABLE IF NOT EXISTS route_cache (
     created_at INTEGER
 )`);
 
-// --- 2. MAPA DE ESTADOS (TRADUTOR) ---
 const BRAZIL_STATES = {
     "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE",
     "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT",
@@ -32,7 +31,6 @@ const BRAZIL_STATES = {
     "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO"
 };
 
-// --- 3. SERVIÇO ---
 class RouteWeatherService {
     constructor() {
         this.CHECKPOINT_INTERVAL = 3600;
@@ -45,6 +43,7 @@ class RouteWeatherService {
         const departureDate = dateString ? new Date(dateString) : new Date();
         const departureIsoKey = departureDate.toISOString().slice(0, 13);
 
+        // Checa Cache
         const cachedData = await this._checkCache(normOrigin, normDest, departureIsoKey);
         if (cachedData) {
             console.log(`⚡ Cache hit: ${originText} -> ${destinationText}`);
@@ -59,10 +58,16 @@ class RouteWeatherService {
         if (!origin || !destination) throw new Error("Cidades não encontradas no Brasil.");
 
         const routeData = await this._getOSRMRoute(origin, destination);
-        const result = await this._processCheckpoints(routeData, departureDate);
+        const checkpoints = await this._processCheckpoints(routeData, departureDate);
 
-        this._saveToCache(normOrigin, normDest, departureIsoKey, result);
-        return result;
+        // --- MUDANÇA: Retornamos um Objeto com a Rota Completa e os Checkpoints
+        const finalResult = {
+            routeGeo: routeData.path, // Array completo de coordenadas para desenhar o mapa
+            checkpoints: checkpoints  // Dados do clima
+        };
+
+        this._saveToCache(normOrigin, normDest, departureIsoKey, finalResult);
+        return finalResult;
     }
 
     _checkCache(origin, dest, dateKey) {
@@ -97,7 +102,7 @@ class RouteWeatherService {
         return {
             duration: res.data.routes[0].duration,
             distance: res.data.routes[0].distance,
-            path: res.data.routes[0].geometry.coordinates
+            path: res.data.routes[0].geometry.coordinates // GeoJSON [lng, lat]
         };
     }
 
@@ -107,11 +112,9 @@ class RouteWeatherService {
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
             const addr = res.data.address;
-
             const city = addr.city || addr.town || addr.village || addr.municipality || "Local";
             const fullState = addr.state;
             const uf = BRAZIL_STATES[fullState] || fullState || "";
-
             return uf ? `${city}, ${uf}` : city;
         } catch (error) { return "Estrada"; }
     }
@@ -169,24 +172,13 @@ class RouteWeatherService {
         return checkpoints;
     }
 
-    // --- CORREÇÃO AQUI: Tabela WMO completa ---
     _translateWMO(code) {
         const table = {
-            0: "Céu Limpo ☀️",
-            1: "Predom. Limpo 🌤️", 2: "Parcial. Nublado ⛅", 3: "Encoberto ☁️",
-            45: "Nevoeiro 🌫️", 48: "Nevoeiro c/ Geada 🌫️",
-            51: "Garoa Leve 🌧️", 53: "Garoa Moderada 🌧️", 55: "Garoa Densa 🌧️",
-            56: "Garoa Gelada ❄️", 57: "Garoa Gelada Densa ❄️",
-            61: "Chuva Fraca ☔", 63: "Chuva Moderada ☔", 65: "Chuva Forte ⛈️",
-            66: "Chuva Congelante ❄️", 67: "Chuva Congelante ❄️",
-            71: "Neve Fraca 🌨️", 73: "Neve Moderada 🌨️", 75: "Neve Forte 🌨️",
-            77: "Granizo Miúdo 🌨️",
-            80: "Pancadas de Chuva 🌦️", 81: "Pancadas Fortes ⛈️", 82: "Tempestade Violenta ⛈️",
-            85: "Pancadas de Neve 🌨️", 86: "Pancadas de Neve 🌨️",
-            95: "Tempestade Trovões ⚡",
-            96: "Tempestade c/ Granizo ❄️⚡", 99: "Tempestade Severa ❄️⚡"
+            0: "Céu Limpo ☀️", 1: "Predom. Limpo 🌤️", 2: "Parcial. Nublado ⛅", 3: "Encoberto ☁️",
+            45: "Nevoeiro 🌫️", 48: "Nevoeiro c/ Geada 🌫️", 51: "Garoa Leve 🌧️", 53: "Garoa Moderada 🌧️",
+            55: "Garoa Densa 🌧️", 61: "Chuva Fraca ☔", 63: "Chuva Moderada ☔", 65: "Chuva Forte ⛈️",
+            80: "Pancadas de Chuva 🌦️", 81: "Pancadas Fortes ⛈️", 95: "Tempestade Trovões ⚡", 96: "Tempestade c/ Granizo ❄️⚡"
         };
-        // Fallback: Se mesmo assim vier um código novo, mostra o número para debug
         return table[code] || `Clima (${code})`;
     }
 }
@@ -197,7 +189,6 @@ app.post('/api/forecast', async (req, res) => {
     try {
         const { origin, destination, date } = req.body;
         if (!origin || !destination) return res.status(400).json({ error: "Dados faltando" });
-
         const data = await service.getRouteForecast(origin, destination, date);
         res.json(data);
     } catch (error) {
@@ -206,4 +197,4 @@ app.post('/api/forecast', async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('🚀 Servidor Atualizado.'));
+app.listen(3000, () => console.log('🚀 Servidor rodando.'));
