@@ -19,7 +19,6 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 
 **Frontend:**
 - HTML5, CSS3 & JavaScript Puro (Vanilla)
-- Integrável em WordPress/Elementor via Shortcode ou Widget HTML.
 
 **APIs Externas (Gratuitas/Open Source):**
 - 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas).
