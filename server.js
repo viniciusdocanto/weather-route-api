@@ -101,7 +101,6 @@ class RouteWeatherService {
         };
     }
 
-    // --- MUDANÇA PRINCIPAL AQUI ---
     async _getCityName(lat, lng) {
         try {
             await new Promise(r => setTimeout(r, 800));
@@ -109,20 +108,12 @@ class RouteWeatherService {
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
             const addr = res.data.address;
 
-            // 1. Pega o nome da cidade
             const city = addr.city || addr.town || addr.village || addr.municipality || "Local";
-
-            // 2. Pega o nome do estado (Ex: "São Paulo")
             const fullState = addr.state;
-
-            // 3. Traduz para Sigla (Ex: "SP") usando nosso mapa
-            // Se não achar no mapa (ex: erro de digitação da API), usa o nome completo mesmo
             const uf = BRAZIL_STATES[fullState] || fullState || "";
 
-            // Retorna formato "Campinas, SP"
             return uf ? `${city}, ${uf}` : city;
-
-        } catch (error) { return "Estrada desconhecida"; }
+        } catch (error) { return "Estrada"; }
     }
 
     async _getWeather(lat, lng, date) {
@@ -163,7 +154,7 @@ class RouteWeatherService {
                 formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
                 lat: lat,
                 lng: lng,
-                locationName: cityName, // Agora já vem formatado com UF
+                locationName: cityName,
                 distanceFromStart: currentDistKm,
                 weather: {
                     temp: weather.temp,
@@ -178,9 +169,25 @@ class RouteWeatherService {
         return checkpoints;
     }
 
+    // --- CORREÇÃO AQUI: Tabela WMO completa ---
     _translateWMO(code) {
-        const table = { 0: "Limpo ☀️", 1: "Ensolarado 🌤️", 2: "Nublado ⛅", 3: "Encoberto ☁️", 45: "Nevoeiro 🌫️", 51: "Garoa 🌧️", 61: "Chuva Fraca ☔", 63: "Chuva ☔", 65: "Chuva Forte ⛈️", 80: "Pancadas 🌦️", 95: "Tempestade ⚡" };
-        return table[code] || "Desconhecido";
+        const table = {
+            0: "Céu Limpo ☀️",
+            1: "Predom. Limpo 🌤️", 2: "Parcial. Nublado ⛅", 3: "Encoberto ☁️",
+            45: "Nevoeiro 🌫️", 48: "Nevoeiro c/ Geada 🌫️",
+            51: "Garoa Leve 🌧️", 53: "Garoa Moderada 🌧️", 55: "Garoa Densa 🌧️",
+            56: "Garoa Gelada ❄️", 57: "Garoa Gelada Densa ❄️",
+            61: "Chuva Fraca ☔", 63: "Chuva Moderada ☔", 65: "Chuva Forte ⛈️",
+            66: "Chuva Congelante ❄️", 67: "Chuva Congelante ❄️",
+            71: "Neve Fraca 🌨️", 73: "Neve Moderada 🌨️", 75: "Neve Forte 🌨️",
+            77: "Granizo Miúdo 🌨️",
+            80: "Pancadas de Chuva 🌦️", 81: "Pancadas Fortes ⛈️", 82: "Tempestade Violenta ⛈️",
+            85: "Pancadas de Neve 🌨️", 86: "Pancadas de Neve 🌨️",
+            95: "Tempestade Trovões ⚡",
+            96: "Tempestade c/ Granizo ❄️⚡", 99: "Tempestade Severa ❄️⚡"
+        };
+        // Fallback: Se mesmo assim vier um código novo, mostra o número para debug
+        return table[code] || `Clima (${code})`;
     }
 }
 
@@ -199,4 +206,4 @@ app.post('/api/forecast', async (req, res) => {
     }
 });
 
-app.listen(3000, () => console.log('🚀 Servidor rodando.'));
+app.listen(3000, () => console.log('🚀 Servidor Atualizado.'));
