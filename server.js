@@ -96,15 +96,51 @@ class RouteWeatherService {
     }
 
     async _getOSRMRoute(start, end) {
-        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
-        const res = await axios.get(url);
-        if (!res.data.routes || !res.data.routes[0]) throw new Error("Rota não encontrada");
+    // Definimos a URL (usando https como você já estava fazendo)
+    const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+
+    try {
+        // Blindagem 1: Adicionamos um timeout para a requisição não ficar "pendurada"
+        const res = await axios.get(url, { 
+            timeout: 10000, // 10 segundos
+            headers: { 'Accept-Encoding': 'gzip,deflate,compress' } 
+        });
+
+        // Blindagem 2: Verificação defensiva da estrutura de dados
+        if (!res.data || !res.data.routes || res.data.routes.length === 0) {
+            console.error("📦 OSRM: Resposta vazia ou sem rotas para estas coordenadas.");
+            throw new Error("Não foi possível encontrar uma rota entre esses pontos.");
+        }
+
         return {
             duration: res.data.routes[0].duration,
             distance: res.data.routes[0].distance,
             path: res.data.routes[0].geometry.coordinates // GeoJSON [lng, lat]
         };
+
+    } catch (error) {
+        // Blindagem 3: Classificação do erro para facilitar o seu debug
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENETUNREACH') {
+            console.error("🚨 OSRM Offline: O servidor router.project-osrm.org recusou a conexão.");
+            throw new Error("O serviço de mapas está temporariamente indisponível. Tente novamente em instantes.");
+        } 
+        
+        if (error.code === 'ECONNABORTED') {
+            console.error("⏱️ OSRM Timeout: A API de rotas demorou demais para responder.");
+            throw new Error("A busca demorou muito. Verifique sua conexão ou tente uma rota mais curta.");
+        }
+
+        // Se o erro veio da própria API (ex: 400 Bad Request)
+        if (error.response) {
+            console.error("❌ OSRM Erro API:", error.response.status, error.response.data);
+            throw new Error(`Erro no cálculo da rota: ${error.response.data.message || 'Dados inválidos'}`);
+        }
+
+        // Erro genérico (fallback)
+        console.error("🔥 Erro inesperado no _getOSRMRoute:", error.message);
+        throw new Error("Falha interna ao processar o trajeto.");
     }
+}
 
     async _getCityName(lat, lng) {
         try {
