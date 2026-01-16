@@ -96,7 +96,7 @@ class RouteWeatherService {
     }
 
     async _getOSRMRoute(start, end) {
-        const url = `http://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
         const res = await axios.get(url);
         if (!res.data.routes || !res.data.routes[0]) throw new Error("Rota não encontrada");
         return {
