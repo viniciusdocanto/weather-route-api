@@ -183,22 +183,54 @@ class RouteWeatherService {
     }
 
     async _processCheckpoints(routeData, departureTime) {
+        // BLINDAGEM 1: Verifica se path existe e é um array
+        if (!routeData || !routeData.path || !Array.isArray(routeData.path) || routeData.path.length === 0) {
+            console.error("❌ Erro: O provedor de rota não retornou coordenadas (path vazio).");
+            // Retorna um checkpoint único de "Origem" para não quebrar o app
+            return [{
+                formattedTime: departureTime.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                locationName: "Local de Partida",
+                distanceFromStart: 0,
+                weather: { temp: "--", condition: "Dados indisponíveis" }
+            }];
+        }
+
         const checkpoints = [];
         let timeOffset = 0;
-        const totalDuration = routeData.duration;
-        const totalDistance = routeData.distance;
+        const totalDuration = routeData.duration || 0; // Garante que não é undefined
+        const totalDistance = routeData.distance || 0;
         const pathPoints = routeData.path;
 
         while (timeOffset <= totalDuration) {
             const futureDate = new Date(departureTime.getTime() + (timeOffset * 1000));
-            const progress = timeOffset / totalDuration;
             
-            // Pega a coordenada proporcional ao tempo no array de path
-            const pathIndex = Math.floor(progress * (pathPoints.length - 1));
-            const [lng, lat] = pathPoints[pathIndex];
+            // Evita divisão por zero se a duração for 0
+            const progress = totalDuration > 0 ? timeOffset / totalDuration : 0;
+            
+            // BLINDAGEM 2: Garante que o índice existe no array
+            let pathIndex = Math.floor(progress * (pathPoints.length - 1));
+            if (pathIndex < 0) pathIndex = 0;
+            if (pathIndex >= pathPoints.length) pathIndex = pathPoints.length - 1;
 
-            const weather = await this._getWeather(lat, lng, futureDate);
-            const cityName = await this._getCityName(lat, lng);
+            // BLINDAGEM 3: Verifica se o ponto específico existe antes de desestruturar
+            const point = pathPoints[pathIndex];
+            if (!point) {
+                console.warn(`⚠️ Ponto inválido no índice ${pathIndex}`);
+                break; // Sai do loop para não quebrar
+            }
+
+            const [lng, lat] = point; // Agora é seguro fazer isso
+
+            // Busca clima e nome da cidade (com try/catch interno para não parar tudo)
+            let weather = { temp: "--", code: 0 };
+            let cityName = "Estrada";
+            
+            try {
+                weather = await this._getWeather(lat, lng, futureDate);
+                cityName = await this._getCityName(lat, lng);
+            } catch (err) {
+                console.warn("Falha leve ao obter clima/nome:", err.message);
+            }
 
             checkpoints.push({
                 formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
@@ -212,8 +244,12 @@ class RouteWeatherService {
             });
 
             if (timeOffset >= totalDuration) break;
+            
+            // Se o intervalo for maior que a duração total, ajusta para terminar o loop
             timeOffset += this.CHECKPOINT_INTERVAL;
-            if (timeOffset > totalDuration) timeOffset = totalDuration;
+            if (timeOffset > totalDuration && timeOffset - this.CHECKPOINT_INTERVAL < totalDuration) {
+                timeOffset = totalDuration;
+            }
         }
         return checkpoints;
     }
