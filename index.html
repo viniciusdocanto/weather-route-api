@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previsão de Rota (Mapa)</title>
+    <title>Previsão de Rota</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -121,6 +121,10 @@
             background-color: #f1f1f1;
         }
 
+        .autocomplete-item small {
+            display: block;
+        }
+
         /* TIMELINE */
         .timeline {
             margin-top: 2rem;
@@ -190,17 +194,17 @@
 <body>
 
     <div class="card">
-        <h1>🇧🇷 WeatherTrip Mapa</h1>
+        <h1>WeatherTrip</h1>
 
         <div class="form-row">
             <div class="form-group">
-                <label>Sair de (Brasil):</label>
+                <label>Sair de:</label>
                 <input type="text" id="origin" placeholder="Origem..." autocomplete="off">
                 <div id="origin-list" class="autocomplete-list"></div>
             </div>
 
             <div class="form-group">
-                <label>Ir para (Brasil):</label>
+                <label>Ir para:</label>
                 <input type="text" id="destination" placeholder="Destino..." autocomplete="off">
                 <div id="destination-list" class="autocomplete-list"></div>
             </div>
@@ -290,12 +294,24 @@
             const resultsDiv = document.getElementById('results');
             const mapDiv = document.getElementById('map');
 
+            // Detecta ambiente (Local vs Produção)
             const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
             const API_URL = isLocal ? 'http://localhost:3000/api/forecast' : 'https://weather-route-api.onrender.com/api/forecast';
 
             if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
-            resultsDiv.innerHTML = `<div style="text-align:center; padding: 20px; color:#666;">Buscando rota... <img src="https://i.gifer.com/ZZ5H.gif" width="20"></div>`;
+            // --- PASSO 1: RESETAR A TELA (FEATURE NOVA) ---
+            // Esconde o mapa imediatamente para limpar a visão
+            mapDiv.style.display = 'none';
+
+            // Mostra o Loading na lista
+            resultsDiv.innerHTML = `
+                <div style="text-align:center; padding: 40px; color: #666;">
+                    <img src="https://i.gifer.com/ZZ5H.gif" width="40"><br><br>
+                    <strong>Calculando rota e clima...</strong><br>
+                    <small>Aguarde um momento</small>
+                </div>
+            `;
 
             try {
                 const response = await fetch(API_URL, {
@@ -307,43 +323,58 @@
                 const data = await response.json();
                 resultsDiv.innerHTML = '';
 
-                if (data.error) { resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`; return; }
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`;
+                    return;
+                }
 
-                // --- DESENHAR NO MAPA ---
-                mapDiv.style.display = 'block'; // Mostra a div do mapa
-                map.invalidateSize(); // Atualiza renderização
+                // --- PASSO 2: EXIBIR O MAPA (SOMENTE AGORA) ---
+                mapDiv.style.display = 'block';
+                map.invalidateSize(); // Comando Vital: Ajusta o mapa ao aparecer novamente
 
-                // 1. Limpa camadas antigas
+                // Limpa camadas antigas
                 if (routeLayer) map.removeLayer(routeLayer);
                 markersLayer.clearLayers();
 
-                // 2. Desenha a linha da rota
-                // OSRM retorna GeoJSON [lng, lat], mas Leaflet usa [lat, lng].
-                // Felizmente, L.geoJSON aceita o formato nativo do OSRM.
+                // Desenha a linha da rota
                 const routeGeoJSON = {
                     "type": "LineString",
                     "coordinates": data.routeGeo
                 };
 
                 routeLayer = L.geoJSON(routeGeoJSON, {
-                    style: { color: 'blue', weight: 4, opacity: 0.7 }
+                    style: { color: '#1a73e8', weight: 5, opacity: 0.8 } // Azul Google Maps
                 }).addTo(map);
 
-                // 3. Zoom para caber a rota inteira
-                map.fitBounds(routeLayer.getBounds());
+                map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] }); // Ajusta zoom com margem
 
-                // --- LISTAR RESULTADOS E MARCADORES ---
-                data.checkpoints.forEach(item => {
-                    // Adiciona marcador no mapa
-                    const marker = L.marker([item.lat, item.lng]).addTo(markersLayer);
-                    marker.bindPopup(`
-                        <b>${item.locationName}</b><br>
-                        ${item.formattedTime}<br>
-                        ${item.weather.temp}°C - ${item.weather.condition}
-                    `);
+                // --- PASSO 3: LISTA E MARCADORES (INICIAL/FINAL) ---
+                data.checkpoints.forEach((item, index) => {
 
-                    // Adiciona na lista HTML
+                    const isStart = index === 0;
+                    const isEnd = index === data.checkpoints.length - 1;
+
+                    // Adiciona marcador apenas no Início e Fim
+                    if (isStart || isEnd) {
+                        const marker = L.marker([item.lat, item.lng]).addTo(markersLayer);
+
+                        // Ícone diferente ou Texto no Popup
+                        const title = isStart ? "🚩 Partida" : "🏁 Chegada";
+
+                        marker.bindPopup(`
+                            <div style="text-align:center;">
+                                <strong>${title}</strong><br>
+                                ${item.locationName}<br>
+                                <span style="font-size:1.2em">${item.weather.condition} ${item.weather.temp}°C</span>
+                            </div>
+                        `);
+
+                        if (isEnd) marker.openPopup();
+                    }
+
+                    // Lista detalhada (Textual)
                     let kmText = (item.distanceFromStart === 0) ? "📍 Partida" : `🚗 Km ${item.distanceFromStart || '--'}`;
+
                     resultsDiv.innerHTML += `
                         <div class="timeline-item">
                             <div class="time-badge">
@@ -363,7 +394,9 @@
 
             } catch (error) {
                 console.error(error);
-                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar.</p>';
+                resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar com o servidor.</p>';
+                // Garante que o mapa continue escondido se der erro
+                mapDiv.style.display = 'none';
             }
         }
     </script>
