@@ -2,12 +2,25 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs'); // Necessário para verificar o arquivo de segredos
+
+// --- 1. CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE ---
+// Tenta carregar do caminho de segredos do Render (Produção)
+if (fs.existsSync('/etc/secrets/.env')) {
+    require('dotenv').config({ path: '/etc/secrets/.env' });
+    console.log("🔒 Carregando variáveis de /etc/secrets/.env");
+} else {
+    // Caso contrário, carrega do arquivo local .env (Desenvolvimento)
+    require('dotenv').config();
+    console.log("💻 Carregando variáveis locais");
+}
+
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// --- 1. CONFIGURAÇÃO DO BANCO DE DADOS (CACHE) ---
+// --- 2. BANCO DE DADOS ---
 const db = new sqlite3.Database('./weather_trip.db', (err) => {
     if (err) console.error("Erro DB:", err.message);
     else console.log("💾 Banco conectado localmente.");
@@ -33,12 +46,17 @@ const BRAZIL_STATES = {
 
 class RouteWeatherService {
     constructor() {
-        this.CHECKPOINT_INTERVAL = 3600; // 1 hora entre pontos
-        this.CACHE_TTL = 3600 * 1000;    // 1 hora de validade do cache
+        this.CHECKPOINT_INTERVAL = 3600;
+        this.CACHE_TTL = 3600 * 1000;
         
-        // --- ADICIONE SUAS CHAVES AQUI ---
-        this.GRAPHHOPPER_KEY = 'SUA_CHAVE_GRAPHHOPPER_AQUI'; 
-        this.MAPBOX_TOKEN = 'SEU_TOKEN_MAPBOX_AQUI';
+        // --- CHAVES PUXADAS DO ENV ---
+        this.GRAPHHOPPER_KEY = process.env.GRAPHHOPPER_KEY; 
+        this.MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
+
+        // Log de segurança (mostra apenas se as chaves existem, sem revelar o valor)
+        console.log("🔑 Status das Chaves:");
+        console.log(`- GraphHopper: ${this.GRAPHHOPPER_KEY ? 'Carregada ✅' : 'Ausente ❌'}`);
+        console.log(`- Mapbox: ${this.MAPBOX_TOKEN ? 'Carregada ✅' : 'Ausente ❌'}`);
     }
 
     async getRouteForecast(originText, destinationText, dateString) {
@@ -47,23 +65,18 @@ class RouteWeatherService {
         const departureDate = dateString ? new Date(dateString) : new Date();
         const departureIsoKey = departureDate.toISOString().slice(0, 13);
 
-        // 1. Verificar Cache
         const cachedData = await this._checkCache(normOrigin, normDest, departureIsoKey);
         if (cachedData) {
             console.log(`⚡ Cache hit: ${originText} -> ${destinationText}`);
             return cachedData;
         }
 
-        // 2. Obter Coordenadas (Geocoding)
         const origin = await this._getCoordinates(originText);
         const destination = await this._getCoordinates(destinationText);
 
         if (!origin || !destination) throw new Error("Cidades não encontradas.");
 
-        // 3. Obter Rota com Sistema de Cascata (Failover)
         const routeData = await this._getRouteWithFallback(origin, destination);
-
-        // 4. Processar Clima nos Checkpoints
         const checkpoints = await this._processCheckpoints(routeData, departureDate);
 
         const finalResult = {
@@ -74,40 +87,36 @@ class RouteWeatherService {
             durationTotal: routeData.duration
         };
 
-        // 5. Salvar em Cache
         this._saveToCache(normOrigin, normDest, departureIsoKey, finalResult);
         return finalResult;
     }
 
-    // --- LÓGICA DE FALLBACK (CASCATA) ---
     async _getRouteWithFallback(start, end) {
-        // Tentativa 1: OSRM (Demo gratuito)
+        // Tentativa 1: OSRM
         try {
             console.log("🔄 Tentando OSRM...");
             return await this._getOSRMRoute(start, end);
         } catch (e) {
-            console.warn("⚠️ OSRM falhou ou está offline. Tentando GraphHopper...");
+            console.warn("⚠️ OSRM falhou. Tentando GraphHopper...");
         }
 
         // Tentativa 2: GraphHopper
         try {
-            if (!this.GRAPHHOPPER_KEY || this.GRAPHHOPPER_KEY.includes('AQUI')) throw new Error("Key ausente");
+            if (!this.GRAPHHOPPER_KEY) throw new Error("Chave GraphHopper não configurada no .env");
             return await this._getGraphHopperRoute(start, end);
         } catch (e) {
-            console.warn("⚠️ GraphHopper falhou. Tentando Mapbox...");
+            console.warn(`⚠️ GraphHopper falhou (${e.message}). Tentando Mapbox...`);
         }
 
         // Tentativa 3: Mapbox
         try {
-            if (!this.MAPBOX_TOKEN || this.MAPBOX_TOKEN.includes('AQUI')) throw new Error("Token ausente");
+            if (!this.MAPBOX_TOKEN) throw new Error("Token Mapbox não configurado no .env");
             return await this._getMapboxRoute(start, end);
         } catch (e) {
-            console.error("❌ Todos os provedores de rota falharam.");
-            throw new Error("Serviços de mapas indisponíveis no momento.");
+            console.error("❌ Todos os provedores falharam.");
+            throw new Error("Serviços de mapas indisponíveis. Verifique as chaves de API no servidor.");
         }
     }
-
-    // --- PROVEDORES DE ROTA ---
 
     async _getOSRMRoute(start, end) {
         const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
@@ -145,8 +154,6 @@ class RouteWeatherService {
         };
     }
 
-    // --- UTILITÁRIOS E CLIMA ---
-
     async _getCoordinates(query) {
         try {
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
@@ -157,7 +164,6 @@ class RouteWeatherService {
 
     async _getCityName(lat, lng) {
         try {
-            // Delay para respeitar rate limit do Nominatim gratuito
             await new Promise(r => setTimeout(r, 600));
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
@@ -183,10 +189,8 @@ class RouteWeatherService {
     }
 
     async _processCheckpoints(routeData, departureTime) {
-        // BLINDAGEM 1: Verifica se path existe e é um array
         if (!routeData || !routeData.path || !Array.isArray(routeData.path) || routeData.path.length === 0) {
             console.error("❌ Erro: O provedor de rota não retornou coordenadas (path vazio).");
-            // Retorna um checkpoint único de "Origem" para não quebrar o app
             return [{
                 formattedTime: departureTime.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
                 locationName: "Local de Partida",
@@ -197,40 +201,28 @@ class RouteWeatherService {
 
         const checkpoints = [];
         let timeOffset = 0;
-        const totalDuration = routeData.duration || 0; // Garante que não é undefined
+        const totalDuration = routeData.duration || 0;
         const totalDistance = routeData.distance || 0;
         const pathPoints = routeData.path;
 
         while (timeOffset <= totalDuration) {
             const futureDate = new Date(departureTime.getTime() + (timeOffset * 1000));
-            
-            // Evita divisão por zero se a duração for 0
             const progress = totalDuration > 0 ? timeOffset / totalDuration : 0;
-            
-            // BLINDAGEM 2: Garante que o índice existe no array
             let pathIndex = Math.floor(progress * (pathPoints.length - 1));
             if (pathIndex < 0) pathIndex = 0;
             if (pathIndex >= pathPoints.length) pathIndex = pathPoints.length - 1;
 
-            // BLINDAGEM 3: Verifica se o ponto específico existe antes de desestruturar
             const point = pathPoints[pathIndex];
-            if (!point) {
-                console.warn(`⚠️ Ponto inválido no índice ${pathIndex}`);
-                break; // Sai do loop para não quebrar
-            }
+            if (!point) { break; }
+            const [lng, lat] = point;
 
-            const [lng, lat] = point; // Agora é seguro fazer isso
-
-            // Busca clima e nome da cidade (com try/catch interno para não parar tudo)
             let weather = { temp: "--", code: 0 };
             let cityName = "Estrada";
             
             try {
                 weather = await this._getWeather(lat, lng, futureDate);
                 cityName = await this._getCityName(lat, lng);
-            } catch (err) {
-                console.warn("Falha leve ao obter clima/nome:", err.message);
-            }
+            } catch (err) { }
 
             checkpoints.push({
                 formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
@@ -244,8 +236,6 @@ class RouteWeatherService {
             });
 
             if (timeOffset >= totalDuration) break;
-            
-            // Se o intervalo for maior que a duração total, ajusta para terminar o loop
             timeOffset += this.CHECKPOINT_INTERVAL;
             if (timeOffset > totalDuration && timeOffset - this.CHECKPOINT_INTERVAL < totalDuration) {
                 timeOffset = totalDuration;
@@ -264,7 +254,6 @@ class RouteWeatherService {
         return table[code] || `Clima (${code})`;
     }
 
-    // --- CACHE ---
     _checkCache(origin, dest, dateKey) {
         return new Promise((resolve) => {
             db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ?`, 
@@ -281,7 +270,6 @@ class RouteWeatherService {
     }
 }
 
-// --- ROTAS API ---
 const service = new RouteWeatherService();
 
 app.post('/api/forecast', async (req, res) => {
