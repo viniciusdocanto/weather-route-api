@@ -156,10 +156,34 @@ class RouteWeatherService {
 
     async _getCoordinates(query) {
         try {
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=br`;
-            const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
-            return res.data[0] ? { lat: res.data[0].lat, lng: res.data[0].lon } : null;
-        } catch (e) { return null; }
+            // 1. LOG DE DEBUG: Para ver o que chegou do Frontend
+            console.log(`🔎 Buscando coordenadas para: "${query}"`);
+
+            // 2. LIMPEZA: Troca os hífens " - " por vírgulas ", "
+            // O Nominatim entende melhor "Rua, Cidade" do que "Rua - Cidade"
+            const cleanQuery = query.replace(/ - /g, ', ');
+
+            // 3. Monta a URL com a query limpa
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&countrycodes=br`;
+            
+            const res = await axios.get(url, { 
+                headers: { 'User-Agent': 'WeatherTripApp/1.0' },
+                timeout: 5000 
+            });
+
+            // 4. LOG DE RESULTADO
+            if (res.data && res.data[0]) {
+                console.log(`✅ Encontrado: ${res.data[0].display_name.slice(0, 30)}...`);
+                return { lat: res.data[0].lat, lng: res.data[0].lon };
+            } else {
+                console.warn(`❌ Nominatim não encontrou nada para: "${cleanQuery}"`);
+                return null;
+            }
+
+        } catch (e) { 
+            console.error(`🔥 Erro no Nominatim: ${e.message}`);
+            return null; 
+        }
     }
 
     async _getCityName(lat, lng) {
