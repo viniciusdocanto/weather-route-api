@@ -1,7 +1,9 @@
 # Dependências do Node.js (Pesado, nunca deve ir para o Git)
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # Banco de Dados SQLite (Não queremos subir o cache local)
 *.db
@@ -10,7 +12,28 @@ yarn-error.log
 
 # Arquivos de Sistema Operacional
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Arquivos de Variáveis de Ambiente (Segurança futura)
 .env
+.env.local
+.env.*.local
+
+# Audit and Analysis (Temp)
+audit_*.txt
+analysis_results.md
+audit_report.txt
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.settings/
+.classpath
