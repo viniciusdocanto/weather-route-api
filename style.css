@@ -1,0 +1,178 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    max-width: 800px;
+    margin: 2rem auto;
+    background: #f0f2f5;
+    color: #333;
+}
+
+.card {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+    text-align: center;
+    color: #1a73e8;
+    margin-bottom: 1.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    flex: 1;
+    position: relative;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #1557b0;
+}
+
+/* MAPA */
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: 12px;
+    margin-top: 20px;
+    display: none;
+    /* Escondido até pesquisar */
+    border: 2px solid #e0e0e0;
+    z-index: 1;
+}
+
+/* AUTOCOMPLETE */
+.autocomplete-list {
+    position: absolute;
+    border: 1px solid #d4d4d4;
+    border-top: none;
+    z-index: 999;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 250px;
+    overflow-y: auto;
+    display: none;
+}
+
+.autocomplete-list.active {
+    display: block;
+}
+
+.autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    font-size: 0.95rem;
+}
+
+.autocomplete-item:hover {
+    background-color: #f1f1f1;
+}
+
+.autocomplete-item small {
+    display: block;
+}
+
+/* TIMELINE */
+.timeline {
+    margin-top: 2rem;
+    position: relative;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.time-badge {
+    background: #e8f0fe;
+    color: #1a73e8;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    min-width: 80px;
+    text-align: center;
+    margin-right: 1rem;
+}
+
+.info {
+    flex-grow: 1;
+}
+
+.city-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #202124;
+    display: block;
+}
+
+.city-meta {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 2px;
+    display: block;
+    font-weight: 500;
+}
+
+.weather-box {
+    text-align: right;
+    min-width: 100px;
+}
+
+.weather-temp {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.weather-cond {
+    font-size: 0.8rem;
+    color: #666;
+    display: block;
+}
