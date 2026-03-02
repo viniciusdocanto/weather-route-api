@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs'); // Necessário para verificar o arquivo de segredos
@@ -19,6 +20,16 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('.'));
+
+// --- 1.5. CONFIGURAÇÃO DE RATE LIMIT (SEGURANÇA) ---
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 15, // Limite de 15 requisições por IP por janela
+    message: { error: "Muitas requisições vindas deste IP. Tente novamente em 15 minutos." },
+    standardHeaders: true, // Retorna info de limite no header `RateLimit-*`
+    legacyHeaders: false, // Desativa os headers `X-RateLimit-*`
+});
 
 // --- 2. BANCO DE DADOS ---
 const db = new sqlite3.Database('./weather_trip.db', (err) => {
@@ -48,9 +59,9 @@ class RouteWeatherService {
     constructor() {
         this.CHECKPOINT_INTERVAL = 3600;
         this.CACHE_TTL = 3600 * 1000;
-        
+
         // --- CHAVES PUXADAS DO ENV ---
-        this.GRAPHHOPPER_KEY = process.env.GRAPHHOPPER_KEY; 
+        this.GRAPHHOPPER_KEY = process.env.GRAPHHOPPER_KEY;
         this.MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
 
         // Log de segurança (mostra apenas se as chaves existem, sem revelar o valor)
@@ -165,10 +176,10 @@ class RouteWeatherService {
 
             // 3. Monta a URL com a query limpa
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&countrycodes=br`;
-            
-            const res = await axios.get(url, { 
+
+            const res = await axios.get(url, {
                 headers: { 'User-Agent': 'WeatherTripApp/1.0' },
-                timeout: 5000 
+                timeout: 5000
             });
 
             // 4. LOG DE RESULTADO
@@ -180,9 +191,9 @@ class RouteWeatherService {
                 return null;
             }
 
-        } catch (e) { 
+        } catch (e) {
             console.error(`🔥 Erro no Nominatim: ${e.message}`);
-            return null; 
+            return null;
         }
     }
 
@@ -216,7 +227,7 @@ class RouteWeatherService {
         if (!routeData || !routeData.path || !Array.isArray(routeData.path) || routeData.path.length === 0) {
             console.error("❌ Erro: O provedor de rota não retornou coordenadas (path vazio).");
             return [{
-                formattedTime: departureTime.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                formattedTime: departureTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
                 locationName: "Local de Partida",
                 distanceFromStart: 0,
                 weather: { temp: "--", condition: "Dados indisponíveis" }
@@ -242,7 +253,7 @@ class RouteWeatherService {
 
             let weather = { temp: "--", code: 0 };
             let cityName = "Estrada";
-            
+
             try {
                 weather = await this._getWeather(lat, lng, futureDate);
                 cityName = await this._getCityName(lat, lng);
@@ -280,27 +291,27 @@ class RouteWeatherService {
 
     _checkCache(origin, dest, dateKey) {
         return new Promise((resolve) => {
-            db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ?`, 
-            [origin, dest, dateKey], (err, row) => {
-                if (!err && row) return resolve(JSON.parse(row.data));
-                resolve(null);
-            });
+            db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ?`,
+                [origin, dest, dateKey], (err, row) => {
+                    if (!err && row) return resolve(JSON.parse(row.data));
+                    resolve(null);
+                });
         });
     }
 
     _saveToCache(origin, dest, dateKey, data) {
         db.run(`INSERT INTO route_cache (origin_text, dest_text, trip_date, data, created_at) VALUES (?, ?, ?, ?, ?)`,
-        [origin, dest, dateKey, JSON.stringify(data), Date.now()]);
+            [origin, dest, dateKey, JSON.stringify(data), Date.now()]);
     }
 }
 
 const service = new RouteWeatherService();
 
-app.post('/api/forecast', async (req, res) => {
+app.post('/api/forecast', apiLimiter, async (req, res) => {
     try {
         const { origin, destination, date } = req.body;
         if (!origin || !destination) return res.status(400).json({ error: "Origem e destino são obrigatórios." });
-        
+
         const data = await service.getRouteForecast(origin, destination, date);
         res.json(data);
     } catch (error) {
