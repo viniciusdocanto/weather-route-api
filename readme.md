@@ -5,10 +5,11 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 ## 🚀 Funcionalidades
 
 - **Cálculo de Rota:** Estima tempo e distância real de direção.
+- **Tráfego com Múltiplas Paradas:** Suporte a adicionar múltiplas paradas intermediárias na viagem.
 - **Previsão Espaço-Temporal:** Cruza a posição do carro com a hora estimada de chegada para pegar a previsão do tempo correta (não a atual).
 - **Geocodificação Reversa:** Identifica o nome das cidades ao longo da rodovia.
 - **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta.
-- **Autocomplete:** Frontend com busca de cidades integrada ao OpenStreetMap.
+- **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -21,8 +22,9 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - HTML5, CSS3 & JavaScript Puro (Vanilla)
 
 **APIs Externas (Gratuitas/Open Source):**
-- 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas).
-- 🛣️ **OSRM (Project-OSRM):** Cálculo de rotas e geometria.
+- 🗺️ **Mapbox Geocoding:** Geocodificação (Texto ↔ Coordenadas) (Principal).
+- 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas) (Fallback caso Mapbox falhe).
+- 🛣️ **OSRM / GraphHopper / Mapbox:** Cálculo de rotas e geometria.
 - 🌦️ **Open-Meteo:** Previsão do tempo meteorológica histórica e futura.
 
 ## 📦 Como rodar o projeto

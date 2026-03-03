@@ -26,7 +26,12 @@ window.onload = function () {
 let debounceTimer;
 async function searchAddress(query) {
     if (!query || query.length < 3) return [];
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=br`;
+
+    // Detecta ambiente (Local vs Produção) e constrói a URL
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_BASE = isLocal ? 'http://localhost:3000/api' : 'https://weather-route-api.onrender.com/api';
+
+    const url = `${API_BASE}/search?q=${encodeURIComponent(query)}`;
     try { return await (await fetch(url)).json(); } catch (e) { return []; }
 }
 
@@ -61,13 +66,54 @@ function setupAutocomplete(inputId, listId) {
 setupAutocomplete('origin', 'origin-list');
 setupAutocomplete('destination', 'destination-list');
 
+// --- 2.5 Lógica de Paradas ---
+let stopCount = 0;
+function adicionarParada() {
+    stopCount++;
+    const id = `stop-${stopCount}`;
+    const listId = `stop-list-${stopCount}`;
+
+    const container = document.getElementById('stops-container');
+    const div = document.createElement('div');
+    div.className = 'stop-group';
+    div.id = `group-${id}`;
+
+    div.innerHTML = `
+        <div class="form-group">
+            <label>Parada:</label>
+            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off">
+            <div id="${listId}" class="autocomplete-list"></div>
+        </div>
+        <button class="btn-remove" onclick="removerParada('${id}')">×</button>
+    `;
+
+    container.appendChild(div);
+    setupAutocomplete(id, listId);
+}
+
+function removerParada(id) {
+    const div = document.getElementById(`group-${id}`);
+    div.classList.add('removing'); // Opcional: adicionar animação de saída no CSS
+    setTimeout(() => div.remove(), 100);
+}
+
 // --- 3. Lógica Principal ---
+let isFirstSearch = true;
+
 async function calcularRota() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
     const date = document.getElementById('trip-date').value;
+
+    // Coletar paradas
+    const stops = Array.from(document.querySelectorAll('#stops-container input'))
+        .map(input => input.value)
+        .filter(val => val.trim() !== "");
+
     const resultsDiv = document.getElementById('results');
     const mapDiv = document.getElementById('map');
+    const mapContainer = document.getElementById('map-container');
+    const mapOverlay = document.getElementById('map-overlay');
 
     // Detecta ambiente (Local vs Produção)
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -75,14 +121,15 @@ async function calcularRota() {
 
     if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
-    // --- PASSO 1: RESETAR A TELA (FEATURE NOVA) ---
-    // Esconde o mapa imediatamente para limpar a visão
-    mapDiv.style.display = 'none';
+    // --- PASSO 1: ESTADO DE CARREGAMENTO ---
+    if (!isFirstSearch) {
+        mapOverlay.classList.add('active');
+        mapDiv.classList.add('loading');
+    }
 
-    // Mostra o Loading na lista
     resultsDiv.innerHTML = `
         <div style="text-align:center; padding: 40px; color: #666;">
-            <img src="https://i.gifer.com/ZZ5H.gif" width="40"><br><br>
+            <div class="spinner" style="margin: 0 auto 20px;"></div>
             <strong>Calculando rota e clima...</strong><br>
             <small>Aguarde um momento</small>
         </div>
@@ -92,7 +139,7 @@ async function calcularRota() {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ origin, destination, date })
+            body: JSON.stringify({ origin, destination, stops, date })
         });
 
         const data = await response.json();
@@ -100,12 +147,22 @@ async function calcularRota() {
 
         if (data.error) {
             resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`;
+            if (!isFirstSearch) {
+                mapOverlay.classList.remove('active');
+                mapDiv.classList.remove('loading');
+            }
             return;
         }
 
-        // --- PASSO 2: EXIBIR O MAPA (SOMENTE AGORA) ---
-        mapDiv.style.display = 'block';
-        map.invalidateSize(); // Comando Vital: Ajusta o mapa ao aparecer novamente
+        // --- PASSO 2: ATUALIZAR MAPA ---
+        if (isFirstSearch) {
+            mapContainer.style.display = 'block';
+            // Pequeno delay para a transição de opacidade funcionar
+            setTimeout(() => {
+                mapContainer.classList.add('visible');
+                map.invalidateSize();
+            }, 10);
+        }
 
         // Limpa camadas antigas
         if (routeLayer) map.removeLayer(routeLayer);
@@ -123,18 +180,32 @@ async function calcularRota() {
 
         map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] }); // Ajusta zoom com margem
 
-        // --- PASSO 3: LISTA E MARCADORES (INICIAL/FINAL) ---
+        // Remove o estado de carregamento
+        setTimeout(() => {
+            if (!isFirstSearch) {
+                mapOverlay.classList.remove('active');
+                mapDiv.classList.remove('loading');
+            }
+            map.invalidateSize();
+            isFirstSearch = false; // A partir de agora, o mapa já foi revelado
+        }, 300);
+
+        // --- PASSO 3: LISTA E MARCADORES (INICIAL/FINAL/PARADAS) ---
         data.checkpoints.forEach((item, index) => {
 
             const isStart = index === 0;
             const isEnd = index === data.checkpoints.length - 1;
 
-            // Adiciona marcador apenas no Início e Fim
-            if (isStart || isEnd) {
+            // NOVA LÓGICA: O Backend agora injeta a flag isStopNode
+            const isIntermediateStop = !isStart && !isEnd && item.isStopNode;
+
+            // Adiciona marcador para Início, Fim E Paradas marcadas
+            if (isStart || isEnd || isIntermediateStop) {
                 const marker = L.marker([item.lat, item.lng]).addTo(markersLayer);
 
-                // Ícone diferente ou Texto no Popup
-                const title = isStart ? "🚩 Partida" : "🏁 Chegada";
+                let title = "📍 Parada";
+                if (isStart) title = "🚩 Partida";
+                if (isEnd) title = "🏁 Chegada";
 
                 marker.bindPopup(`
                     <div style="text-align:center;">
@@ -150,13 +221,18 @@ async function calcularRota() {
             // Lista detalhada (Textual)
             let kmText = (item.distanceFromStart === 0) ? "📍 Partida" : `🚗 Km ${item.distanceFromStart || '--'}`;
 
+            // Destaca a parada na timeline
+            const stopClass = isIntermediateStop ? 'stop-highlight' : '';
+            const stopLabel = isIntermediateStop ? '<span style="color:#e67c73; font-weight:bold; font-size:0.8rem; display:block">📍 Parada Programada</span>' : '';
+
             resultsDiv.innerHTML += `
-                <div class="timeline-item">
+                <div class="timeline-item ${stopClass}" ${isIntermediateStop ? 'style="border-left: 4px solid #e67c73;"' : ''}>
                     <div class="time-badge">
                         ${item.formattedTime.split(' ')[0]}<br>
                         <small>${item.formattedTime.split(' ')[1] || ''}</small>
                     </div>
                     <div class="info">
+                        ${stopLabel}
                         <span class="city-name">${item.locationName}</span>
                         <span class="city-meta">${kmText}</span>
                     </div>
@@ -170,7 +246,9 @@ async function calcularRota() {
     } catch (error) {
         console.error(error);
         resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar com o servidor.</p>';
-        // Garante que o mapa continue escondido se der erro
-        mapDiv.style.display = 'none';
+        if (!isFirstSearch) {
+            mapOverlay.classList.remove('active');
+            mapDiv.classList.remove('loading');
+        }
     }
 }

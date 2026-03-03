@@ -31,6 +31,12 @@
             </div>
         </div>
 
+        <div id="stops-container"></div>
+
+        <div style="margin-bottom: 1.5rem; text-align: center;">
+            <button type="button" class="btn-secondary" onclick="adicionarParada()">+ Adicionar Parada</button>
+        </div>
+
         <div class="form-group">
             <label>Data e Hora da Partida:</label>
             <input type="datetime-local" id="trip-date">
@@ -38,7 +44,12 @@
 
         <button onclick="calcularRota()">Ver Previsão e Mapa</button>
 
-        <div id="map"></div>
+        <div id="map-container">
+            <div id="map"></div>
+            <div id="map-overlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
     </div>
 
     <div id="results" class="timeline"></div>
