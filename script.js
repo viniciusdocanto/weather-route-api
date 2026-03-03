@@ -107,11 +107,11 @@ function adicionarParada() {
 
     div.innerHTML = `
         <div class="form-group">
-            <label>Parada:</label>
-            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off">
+            <label for="${id}">Parada:</label>
+            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off" aria-label="Cidade intermediária">
             <div id="${listId}" class="autocomplete-list"></div>
         </div>
-        <button class="btn-remove" onclick="removerParada('${id}')">×</button>
+        <button class="btn-remove" onclick="removerParada('${id}')" aria-label="Remover parada">×</button>
     `;
 
     container.appendChild(div);

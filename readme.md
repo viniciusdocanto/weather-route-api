@@ -13,6 +13,7 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
 - **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API, validação rigorosa de input no servidor para evitar ataques de DoS e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
 - **Favicon Dinâmico:** Emoji inline via SVG (🌦️) para evitar erros 404 e melhorar a identificação visual.
+- **Acessibilidade:** Suporte a leitores de tela com `aria-label` e associação semântica de labels e inputs.
 
 
 ## 🛠️ Tecnologias Utilizadas
