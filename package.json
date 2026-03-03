@@ -1,9 +1,10 @@
 {
   "name": "weather-route-api",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.7.9",
@@ -15,5 +16,8 @@
   },
   "overrides": {
     "tar": "^7.4.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
