@@ -22,15 +22,16 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public', {
-    maxAge: '365d', // Cache longo para assets (JS, CSS, Imagens)
-    setHeaders: (res, path) => {
-        if (path.endsWith('.html')) {
-            // Garante que o index.html não seja cacheado agressivamente
-            res.setHeader('Cache-Control', 'no-cache');
-        }
-    }
+// Servir arquivos estáticos da pasta assets
+app.use('/assets', express.static(path.join(__dirname, 'assets'), {
+    maxAge: '365d' // Cache longo para assets (JS, CSS, Imagens)
 }));
+
+// Servir os arquivos html na raiz
+app.get('/', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // --- 1.5. CONFIGURAÇÃO DE RATE LIMIT (SEGURANÇA) ---
 const apiLimiter = rateLimit({
