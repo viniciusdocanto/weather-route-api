@@ -54,7 +54,12 @@ function setupAutocomplete(inputId, listId) {
                     const main = addr.city || addr.town || addr.village || place.display_name.split(',')[0];
                     const state = addr.state || '';
                     const txt = state ? `${main} - ${state}` : main;
-                    item.innerHTML = `<strong>${txt}</strong><small>${place.display_name}</small>`;
+                    const strong = document.createElement('strong');
+                    strong.textContent = txt;
+                    const small = document.createElement('small');
+                    small.textContent = place.display_name;
+                    item.appendChild(strong);
+                    item.appendChild(small);
                     item.addEventListener('click', () => { input.value = txt; list.classList.remove('active'); });
                     list.appendChild(item);
                 });
