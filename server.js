@@ -369,7 +369,6 @@ class RouteWeatherService {
 
                 for (let i = 1; i < checkpoints.length - 1; i++) {
                     const c = checkpoints[i];
-                    // Formula simples de distancia euclidiana porxima para achar o index na linha do tempo
                     const dist = Math.pow(c.lat - stop.lat, 2) + Math.pow(c.lng - stop.lng, 2);
                     if (dist < minDist) {
                         minDist = dist;
