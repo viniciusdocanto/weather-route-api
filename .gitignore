@@ -18,6 +18,7 @@ pnpm-debug.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+.agent/
 
 # Arquivos de Variáveis de Ambiente (Segurança futura)
 .env

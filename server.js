@@ -88,8 +88,9 @@ class RouteWeatherService {
             points.push({ ...coord, originalName: name });
         }
 
-        // Cache key includes stops
-        const cacheKey = `${normOrigin}|${normStops.join('|')}|${normDest}`;
+        // NOVO: Usar as coordenadas (truncadas para 4 casas decimais) como chave de cache
+        // Evita que "São Paulo" e "Sao Paulo" gerem requisições duplicadas de rotas
+        const cacheKey = points.map(p => `${Number(p.lat).toFixed(4)},${Number(p.lng).toFixed(4)}`).join('|');
         const cachedData = await this._checkCache(cacheKey, departureIsoKey);
         if (cachedData) {
             console.log(`⚡ Cache hit: ${cacheKey}`);
