@@ -4,6 +4,8 @@ const rateLimit = require('express-rate-limit');
 const axios = require('axios');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs'); // Necessário para verificar o arquivo de segredos
+const path = require('path');
+
 
 // --- 1. CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE ---
 // Tenta carregar do caminho de segredos do Render (Produção)
@@ -499,7 +501,17 @@ app.get('/api/search', apiLimiter, async (req, res) => {
     }
 });
 
+app.get('/api/version', (req, res) => {
+    try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        res.json({ version: pkg.version });
+    } catch (error) {
+        res.status(500).json({ error: "Erro ao ler versão" });
+    }
+});
+
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => console.log(`🚀 Backend rodando na porta ${PORT}`));
 
 // --- 3. LIMPEZA PERIÓDICA DO CACHE ---

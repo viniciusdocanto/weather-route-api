@@ -8,7 +8,8 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Tráfego com Múltiplas Paradas:** Suporte a adicionar múltiplas paradas intermediárias na viagem.
 - **Previsão Espaço-Temporal:** Cruza a posição do carro com a hora estimada de chegada para pegar a previsão do tempo correta (não a atual).
 - **Geocodificação Reversa:** Identifica o nome das cidades ao longo da rodovia.
-- **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta.
+- **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta. A chave de cache é baseada em coordenadas, evitando duplicatas por variações de texto (ex.: "São Paulo" vs "Sao Paulo").
+- **Limpeza Automática de Cache:** Rotina periódica a cada 24h remove registros expirados do banco, evitando crescimento indefinido do arquivo `weather_trip.db`.
 - **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
 - **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
 

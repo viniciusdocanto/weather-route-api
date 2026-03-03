@@ -21,6 +21,7 @@ window.onload = function () {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
     initMap(); // Inicia o mapa (vazio)
+    updateVersion(); // Busca e exibe a versão do app
 };
 
 let debounceTimer;
@@ -70,6 +71,20 @@ function setupAutocomplete(inputId, listId) {
 }
 setupAutocomplete('origin', 'origin-list');
 setupAutocomplete('destination', 'destination-list');
+
+async function updateVersion() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_BASE = isLocal ? 'http://localhost:3000/api' : 'https://weather-route-api.onrender.com/api';
+    try {
+        const res = await fetch(`${API_BASE}/version`);
+        const data = await res.json();
+        if (data.version) {
+            document.getElementById('app-version').textContent = `v${data.version}`;
+        }
+    } catch (e) {
+        console.warn("Não foi possível carregar a versão.");
+    }
+}
 
 // --- 2.5 Lógica de Paradas ---
 let stopCount = 0;
