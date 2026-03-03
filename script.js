@@ -146,7 +146,12 @@ async function calcularRota() {
         resultsDiv.innerHTML = '';
 
         if (data.error) {
-            resultsDiv.innerHTML = `<p style="color:red; text-align:center">${data.error}</p>`;
+            const errorElement = document.createElement('p');
+            errorElement.style.color = 'red';
+            errorElement.style.textAlign = 'center';
+            errorElement.textContent = data.error;
+            resultsDiv.appendChild(errorElement);
+
             if (!isFirstSearch) {
                 mapOverlay.classList.remove('active');
                 mapDiv.classList.remove('loading');
