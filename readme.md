@@ -12,6 +12,7 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Limpeza Automática de Cache:** Rotina periódica a cada 24h remove registros expirados do banco, evitando crescimento indefinido do arquivo `weather_trip.db`.
 - **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
 - **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API, validação rigorosa de input no servidor para evitar ataques de DoS e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
+- **Resiliência do Frontend:** Tratamento robusto de erros HTTP em todas as chamadas `fetch`, garantindo feedback claro ao usuário mesmo em falhas de servidor ou limites de rede.
 - **Favicon Dinâmico:** Emoji inline via SVG (🌦️) para evitar erros 404 e melhorar a identificação visual.
 - **Acessibilidade:** Suporte a leitores de tela com `aria-label` e associação semântica de labels e inputs.
 
