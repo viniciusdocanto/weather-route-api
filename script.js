@@ -26,7 +26,7 @@ window.onload = function () {
     updateVersion(); // Busca e exibe a versão do app
 };
 
-let debounceTimer;
+
 async function searchAddress(query) {
     if (!query || query.length < 3) return [];
 
@@ -40,6 +40,7 @@ async function searchAddress(query) {
 }
 
 function setupAutocomplete(inputId, listId) {
+    let debounceTimer;
     const input = document.getElementById(inputId);
     const list = document.getElementById(listId);
     input.addEventListener('input', function () {
