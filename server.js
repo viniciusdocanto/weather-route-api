@@ -410,11 +410,14 @@ class RouteWeatherService {
 
     _checkCache(routeKey, dateKey) {
         return new Promise((resolve) => {
-            db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND trip_date = ?`,
-                [routeKey, dateKey], (err, row) => {
+            db.get(
+                `SELECT data FROM route_cache WHERE origin_text = ? AND trip_date = ? AND created_at > ?`,
+                [routeKey, dateKey, Date.now() - this.CACHE_TTL],
+                (err, row) => {
                     if (!err && row) return resolve(JSON.parse(row.data));
                     resolve(null);
-                });
+                }
+            );
         });
     }
 
