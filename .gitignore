@@ -27,6 +27,7 @@ Thumbs.db
 
 # Audit and Analysis (Temp)
 audit_*.txt
+audit_*.json
 analysis_results.md
 audit_report.txt
 
