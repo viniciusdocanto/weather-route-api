@@ -484,7 +484,7 @@ app.post('/api/forecast', apiLimiter, async (req, res) => {
     }
 });
 
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', apiLimiter, async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) return res.json([]);
