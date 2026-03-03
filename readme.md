@@ -15,6 +15,8 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Resiliência do Frontend:** Tratamento robusto de erros HTTP em todas as chamadas `fetch`, garantindo feedback claro ao usuário mesmo em falhas de servidor ou limites de rede.
 - **Favicon Dinâmico:** Emoji inline via SVG (🌦️) para evitar erros 404 e melhorar a identificação visual.
 - **Acessibilidade:** Suporte a leitores de tela com `aria-label` e associação semântica de labels e inputs.
+- **Segurança Avançada:** Implementação de Subresource Integrity (SRI) em CDNs de terceiros (Leaflet) para garantir a integridade dos scripts carregados.
+- **SEO & Social Media:** Meta tags otimizadas para Open Graph e Twitter Cards, incluindo correção de caminhos de imagem para melhor compatibilidade de preview.
 
 
 ## 🛠️ Tecnologias Utilizadas
