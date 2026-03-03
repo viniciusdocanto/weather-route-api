@@ -4,7 +4,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Previsão de Rota</title>
+    <title>WeatherTrip - Previsão do Tempo para sua Viagem</title>
+
+    <!-- SEO Básico -->
+    <meta name="description"
+        content="Planeje sua viagem com o WeatherTrip. Veja a previsão do tempo exata para cada ponto da sua rota e viaje com mais segurança.">
+    <meta name="keywords"
+        content="previsão do tempo, rota de viagem, clima na estrada, planejamento de viagem, meteorologia, clima interativo">
+    <meta name="author" content="Vinicius do Canto">
+    <meta name="robots" content="index, follow">
+
+    <!-- Para o link canônico e imagens abaixo, substitua 'https://weathertrip.exemplo.com' pelo seu domínio real -->
+    <link rel="canonical" href="https://sites.docanto.net/weathertrip/" />
+
+    <!-- Open Graph / Meta tags Sociais (Facebook, LinkedIn, WhatsApp) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sites.docanto.net/weathertrip/">
+    <meta property="og:title" content="WeatherTrip - Previsão do Tempo na sua Rota">
+    <meta property="og:description"
+        content="Planeje sua viagem e saiba exatamente como estará o clima em cada trecho do caminho. Evite surpresas na estrada!">
+    <meta property="og:image" content="https://sites.docanto.net/weathertrip/og-image.jpg">
+
+    <!-- Twitter Cards -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta property="twitter:domain" content="sites.docanto.net">
+    <meta property="twitter:url" content="https://sites.docanto.net/weathertrip/">
+    <meta name="twitter:title" content="WeatherTrip - Previsão do Tempo na sua Rota">
+    <meta name="twitter:description"
+        content="Planeje sua viagem e saiba exatamente como estará o clima em cada trecho do caminho.">
+    <meta name="twitter:image" content="https://sites.docanto.net/weathertrip/og-image.jpg">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -14,45 +42,47 @@
 
 <body>
 
-    <div class="card">
-        <h1>WeatherTrip</h1>
+    <main>
+        <div class="card">
+            <h1>WeatherTrip</h1>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label>Sair de:</label>
-                <input type="text" id="origin" placeholder="Origem..." autocomplete="off">
-                <div id="origin-list" class="autocomplete-list"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sair de:</label>
+                    <input type="text" id="origin" placeholder="Origem..." autocomplete="off">
+                    <div id="origin-list" class="autocomplete-list"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ir para:</label>
+                    <input type="text" id="destination" placeholder="Destino..." autocomplete="off">
+                    <div id="destination-list" class="autocomplete-list"></div>
+                </div>
+            </div>
+
+            <div id="stops-container"></div>
+
+            <div style="margin-bottom: 1.5rem; text-align: center;">
+                <button type="button" class="btn-secondary" onclick="adicionarParada()">+ Adicionar Parada</button>
             </div>
 
             <div class="form-group">
-                <label>Ir para:</label>
-                <input type="text" id="destination" placeholder="Destino..." autocomplete="off">
-                <div id="destination-list" class="autocomplete-list"></div>
+                <label>Data e Hora da Partida:</label>
+                <input type="datetime-local" id="trip-date">
+            </div>
+
+            <button onclick="calcularRota()">Ver Previsão e Mapa</button>
+
+            <div id="map-container">
+                <div id="map"></div>
+                <div id="map-overlay">
+                    <div class="spinner"></div>
+                </div>
             </div>
         </div>
 
-        <div id="stops-container"></div>
-
-        <div style="margin-bottom: 1.5rem; text-align: center;">
-            <button type="button" class="btn-secondary" onclick="adicionarParada()">+ Adicionar Parada</button>
-        </div>
-
-        <div class="form-group">
-            <label>Data e Hora da Partida:</label>
-            <input type="datetime-local" id="trip-date">
-        </div>
-
-        <button onclick="calcularRota()">Ver Previsão e Mapa</button>
-
-        <div id="map-container">
-            <div id="map"></div>
-            <div id="map-overlay">
-                <div class="spinner"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="results" class="timeline"></div>
+        <div id="results" class="timeline" aria-live="polite"></div>
+    </main>
 
     <footer class="app-footer">
         <p>&copy; 2026 WeatherTrip. <br>
