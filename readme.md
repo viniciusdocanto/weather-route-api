@@ -10,7 +10,8 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Geocodificação Reversa:** Identifica o nome das cidades ao longo da rodovia.
 - **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta.
 - **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
-- **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API.
+- **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
+
 ## 🛠️ Tecnologias Utilizadas
 
 **Backend:**
