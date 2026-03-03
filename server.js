@@ -22,7 +22,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.', {
+app.use(express.static('public', {
     maxAge: '365d', // Cache longo para assets (JS, CSS, Imagens)
     setHeaders: (res, path) => {
         if (path.endsWith('.html')) {
