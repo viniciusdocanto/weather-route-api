@@ -22,7 +22,15 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static('.', {
+    maxAge: '365d', // Cache longo para assets (JS, CSS, Imagens)
+    setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+            // Garante que o index.html não seja cacheado agressivamente
+            res.setHeader('Cache-Control', 'no-cache');
+        }
+    }
+}));
 
 // --- 1.5. CONFIGURAÇÃO DE RATE LIMIT (SEGURANÇA) ---
 const apiLimiter = rateLimit({

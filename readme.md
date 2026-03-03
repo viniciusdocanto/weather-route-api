@@ -14,9 +14,11 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API, validação rigorosa de input no servidor para evitar ataques de DoS e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
 - **Resiliência do Frontend:** Tratamento robusto de erros HTTP em todas as chamadas `fetch`, garantindo feedback claro ao usuário mesmo em falhas de servidor ou limites de rede.
 - **Favicon Dinâmico:** Emoji inline via SVG (🌦️) para evitar erros 404 e melhorar a identificação visual.
-- **Acessibilidade:** Suporte a leitores de tela com `aria-label` e associação semântica de labels e inputs.
+- **Acessibilidade:** Suporte a leitores de tela com `aria-label` e associação semântica de labels e inputs, além de cores contrastantes garantindo legibilidade e conformidade com os padrões WCAG AA.
 - **Segurança Avançada:** Implementação de Subresource Integrity (SRI) em CDNs de terceiros (Leaflet) para garantir a integridade dos scripts carregados.
 - **SEO & Social Media:** Meta tags otimizadas para Open Graph e Twitter Cards, incluindo correção de caminhos de imagem para melhor compatibilidade de preview.
+- **Performance:** Configuração de cache de longo prazo (TTL eficiente de 1 ano) para ativos estáticos (CSS/JS), melhorando drasticamente a pontuação de velocidade no carregamento de navegadores recorrentes.
+- **Flexibilidade de Hospedagem:** Correção de chamadas de API relativas, permitindo a implantação em subdiretórios perfeitamente integrada.
 
 
 ## 🛠️ Tecnologias Utilizadas

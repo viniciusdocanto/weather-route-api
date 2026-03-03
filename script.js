@@ -2,7 +2,7 @@
 let map = null;
 let routeLayer = null;
 let markersLayer = null;
-let API_BASE = '/api';
+let API_BASE = 'api';
 
 
 
