@@ -501,3 +501,17 @@ app.get('/api/search', apiLimiter, async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Backend rodando na porta ${PORT}`));
+
+// --- 3. LIMPEZA PERIÓDICA DO CACHE ---
+// Remove registros expirados a cada 24h para evitar crescimento indefinido do banco
+const CLEANUP_INTERVAL = 24 * 3600 * 1000; // 24 horas
+setInterval(() => {
+    const cutoff = Date.now() - service.CACHE_TTL;
+    db.run(`DELETE FROM route_cache WHERE created_at < ?`, [cutoff], function (err) {
+        if (err) {
+            console.error('❌ Erro na limpeza do cache:', err.message);
+        } else {
+            console.log(`🧹 Limpeza do cache: ${this.changes} registro(s) expirado(s) removido(s).`);
+        }
+    });
+}, CLEANUP_INTERVAL);
