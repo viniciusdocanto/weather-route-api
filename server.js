@@ -479,7 +479,27 @@ const service = new RouteWeatherService();
 app.post('/api/forecast', apiLimiter, async (req, res) => {
     try {
         const { origin, destination, stops, date } = req.body;
-        if (!origin || !destination) return res.status(400).json({ error: "Origem e destino são obrigatórios." });
+
+        // --- VALIDAÇÃO DE INPUT (SEGURANÇA) ---
+        if (typeof origin !== 'string' || origin.length > 200 || origin.trim() === '') {
+            return res.status(400).json({ error: "Origem inválida ou muito longa (máx 200 caracteres)." });
+        }
+        if (typeof destination !== 'string' || destination.length > 200 || destination.trim() === '') {
+            return res.status(400).json({ error: "Destino inválido ou muito longo (máx 200 caracteres)." });
+        }
+
+        if (stops) {
+            if (!Array.isArray(stops) || stops.length > 10) {
+                return res.status(400).json({ error: "As paradas devem ser um array com no máximo 10 itens." });
+            }
+            if (stops.some(s => typeof s !== 'string' || s.length > 200)) {
+                return res.status(400).json({ error: "Uma ou mais paradas são inválidas ou muito longas (máx 200 caracteres per item)." });
+            }
+        }
+
+        if (date && isNaN(Date.parse(date))) {
+            return res.status(400).json({ error: "Data fornecida é inválida." });
+        }
 
         const data = await service.getRouteForecast(origin, destination, stops || [], date);
         res.json(data);
