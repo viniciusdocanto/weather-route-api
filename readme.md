@@ -40,3 +40,29 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
    ```bash
    git clone https://github.com/viniciusdocanto/weather-route-api.git
    cd weather-route-api
+   ```
+
+2. **Instale as dependências:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure as variáveis de ambiente:**
+   Crie um arquivo `.env` na raiz do projeto (ou copie o `.env-sample`):
+   ```bash
+   cp .env-sample .env
+   ```
+   Edite o arquivo `.env` e adicione suas chaves:
+   - `GRAPHHOPPER_KEY`: Sua chave de API do GraphHopper.
+   - `MAPBOX_TOKEN`: Seu token de acesso do Mapbox.
+   - `API_BASE_URL`: (Opcional) URL base da API se for diferente do padrão `/api`.
+
+4. **Inicie o servidor:**
+   ```bash
+   npm start
+   ```
+   O app estará disponível em `http://localhost:3000`.
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.

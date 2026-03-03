@@ -2,7 +2,8 @@
 let map = null;
 let routeLayer = null;
 let markersLayer = null;
-let API_BASE = '/api'; // Padrão inicial, será atualizado pelo servidor
+let API_BASE = '/api';
+
 
 
 function initMap() {
@@ -78,7 +79,7 @@ setupAutocomplete('destination', 'destination-list');
 
 async function updateVersion() {
     try {
-        const res = await fetch(`/api/version`);
+        const res = await fetch(`${API_BASE}/version`);
         const data = await res.json();
         if (data.version) {
             document.getElementById('app-version').textContent = `v${data.version}`;
