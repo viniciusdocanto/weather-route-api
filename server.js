@@ -504,7 +504,12 @@ app.get('/api/search', apiLimiter, async (req, res) => {
 app.get('/api/version', (req, res) => {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
-        res.json({ version: pkg.version });
+        // Pega a URL base da API do .env ou usa o padrão relativo
+        const apiBaseUrl = process.env.API_BASE_URL || '/api';
+        res.json({
+            version: pkg.version,
+            apiBaseUrl: apiBaseUrl
+        });
     } catch (error) {
         res.status(500).json({ error: "Erro ao ler versão" });
     }

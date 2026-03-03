@@ -2,6 +2,8 @@
 let map = null;
 let routeLayer = null;
 let markersLayer = null;
+let API_BASE = '/api'; // Padrão inicial, será atualizado pelo servidor
+
 
 function initMap() {
     // Cria o mapa centrado no Brasil (zoom level baixo)
@@ -28,12 +30,13 @@ let debounceTimer;
 async function searchAddress(query) {
     if (!query || query.length < 3) return [];
 
-    // Detecta ambiente (Local vs Produção) e constrói a URL
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const API_BASE = isLocal ? 'http://localhost:3000/api' : 'https://weather-route-api.onrender.com/api';
-
     const url = `${API_BASE}/search?q=${encodeURIComponent(query)}`;
-    try { return await (await fetch(url)).json(); } catch (e) { return []; }
+    try {
+        const response = await fetch(url);
+        return await response.json();
+    } catch (e) {
+        return [];
+    }
 }
 
 function setupAutocomplete(inputId, listId) {
@@ -73,16 +76,18 @@ setupAutocomplete('origin', 'origin-list');
 setupAutocomplete('destination', 'destination-list');
 
 async function updateVersion() {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const API_BASE = isLocal ? 'http://localhost:3000/api' : 'https://weather-route-api.onrender.com/api';
     try {
-        const res = await fetch(`${API_BASE}/version`);
+        const res = await fetch(`/api/version`);
         const data = await res.json();
         if (data.version) {
             document.getElementById('app-version').textContent = `v${data.version}`;
         }
+        if (data.apiBaseUrl) {
+            API_BASE = data.apiBaseUrl;
+            console.log(`📡 API configurada para: ${API_BASE}`);
+        }
     } catch (e) {
-        console.warn("Não foi possível carregar a versão.");
+        console.warn("Não foi possível carregar a versão ou configuração.");
     }
 }
 
@@ -135,9 +140,7 @@ async function calcularRota() {
     const mapContainer = document.getElementById('map-container');
     const mapOverlay = document.getElementById('map-overlay');
 
-    // Detecta ambiente (Local vs Produção)
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const API_URL = isLocal ? 'http://localhost:3000/api/forecast' : 'https://weather-route-api.onrender.com/api/forecast';
+    const API_URL = `${API_BASE}/forecast`;
 
     if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
