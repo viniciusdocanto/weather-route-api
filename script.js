@@ -34,6 +34,7 @@ async function searchAddress(query) {
     const url = `${API_BASE}/search?q=${encodeURIComponent(query)}`;
     try {
         const response = await fetch(url);
+        if (!response.ok) return [];
         return await response.json();
     } catch (e) {
         return [];
@@ -80,6 +81,7 @@ setupAutocomplete('destination', 'destination-list');
 async function updateVersion() {
     try {
         const res = await fetch(`${API_BASE}/version`);
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
         const data = await res.json();
         if (data.version) {
             document.getElementById('app-version').textContent = `v${data.version}`;
@@ -168,6 +170,11 @@ async function calcularRota() {
         });
 
         const data = await response.json();
+
+        if (!response.ok && !data.error) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
         resultsDiv.innerHTML = '';
 
         if (data.error) {
