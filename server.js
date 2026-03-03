@@ -70,25 +70,34 @@ class RouteWeatherService {
         console.log(`- Mapbox: ${this.MAPBOX_TOKEN ? 'Carregada ✅' : 'Ausente ❌'}`);
     }
 
-    async getRouteForecast(originText, destinationText, dateString) {
+    async getRouteForecast(originText, destinationText, stopsTexts = [], dateString = '') {
         const normOrigin = originText.trim().toLowerCase();
         const normDest = destinationText.trim().toLowerCase();
+        const normStops = stopsTexts.map(s => s.trim().toLowerCase()).filter(s => s !== "");
+
         const departureDate = dateString ? new Date(dateString) : new Date();
         const departureIsoKey = departureDate.toISOString().slice(0, 13);
 
-        const cachedData = await this._checkCache(normOrigin, normDest, departureIsoKey);
+        // Resolve coordinates for all points first, so we can save them in cache and use in checkpoints
+        const points = [];
+        const originalNames = [originText, ...stopsTexts.filter(s => s.trim() !== ""), destinationText];
+
+        for (const name of originalNames) {
+            const coord = await this._getCoordinates(name);
+            if (!coord) throw new Error(`Localidade não encontrada: ${name}`);
+            points.push({ ...coord, originalName: name });
+        }
+
+        // Cache key includes stops
+        const cacheKey = `${normOrigin}|${normStops.join('|')}|${normDest}`;
+        const cachedData = await this._checkCache(cacheKey, departureIsoKey);
         if (cachedData) {
-            console.log(`⚡ Cache hit: ${originText} -> ${destinationText}`);
+            console.log(`⚡ Cache hit: ${cacheKey}`);
             return cachedData;
         }
 
-        const origin = await this._getCoordinates(originText);
-        const destination = await this._getCoordinates(destinationText);
-
-        if (!origin || !destination) throw new Error("Cidades não encontradas.");
-
-        const routeData = await this._getRouteWithFallback(origin, destination);
-        const checkpoints = await this._processCheckpoints(routeData, departureDate);
+        const routeData = await this._getRouteWithFallback(points);
+        const checkpoints = await this._processCheckpoints(routeData, departureDate, points);
 
         const finalResult = {
             routeGeo: routeData.path,
@@ -98,15 +107,15 @@ class RouteWeatherService {
             durationTotal: routeData.duration
         };
 
-        this._saveToCache(normOrigin, normDest, departureIsoKey, finalResult);
+        this._saveToCache(cacheKey, departureIsoKey, finalResult);
         return finalResult;
     }
 
-    async _getRouteWithFallback(start, end) {
+    async _getRouteWithFallback(points) {
         // Tentativa 1: OSRM
         try {
             console.log("🔄 Tentando OSRM...");
-            return await this._getOSRMRoute(start, end);
+            return await this._getOSRMRoute(points);
         } catch (e) {
             console.warn("⚠️ OSRM falhou. Tentando GraphHopper...");
         }
@@ -114,7 +123,7 @@ class RouteWeatherService {
         // Tentativa 2: GraphHopper
         try {
             if (!this.GRAPHHOPPER_KEY) throw new Error("Chave GraphHopper não configurada no .env");
-            return await this._getGraphHopperRoute(start, end);
+            return await this._getGraphHopperRoute(points);
         } catch (e) {
             console.warn(`⚠️ GraphHopper falhou (${e.message}). Tentando Mapbox...`);
         }
@@ -122,15 +131,16 @@ class RouteWeatherService {
         // Tentativa 3: Mapbox
         try {
             if (!this.MAPBOX_TOKEN) throw new Error("Token Mapbox não configurado no .env");
-            return await this._getMapboxRoute(start, end);
+            return await this._getMapboxRoute(points);
         } catch (e) {
             console.error("❌ Todos os provedores falharam.");
             throw new Error("Serviços de mapas indisponíveis. Verifique as chaves de API no servidor.");
         }
     }
 
-    async _getOSRMRoute(start, end) {
-        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+    async _getOSRMRoute(points) {
+        const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
+        const url = `https://router.project-osrm.org/route/v1/driving/${coords}?overview=full&geometries=geojson`;
         const res = await axios.get(url, { timeout: 8000 });
         if (!res.data.routes[0]) throw new Error("Rota não encontrada no OSRM");
         return {
@@ -141,8 +151,9 @@ class RouteWeatherService {
         };
     }
 
-    async _getGraphHopperRoute(start, end) {
-        const url = `https://graphhopper.com/api/1/route?point=${start.lat},${start.lng}&point=${end.lat},${end.lng}&profile=car&locale=pt&points_encoded=false&key=${this.GRAPHHOPPER_KEY}`;
+    async _getGraphHopperRoute(points) {
+        const query = points.map(p => `point=${p.lat},${p.lng}`).join('&');
+        const url = `https://graphhopper.com/api/1/route?${query}&profile=car&locale=pt&points_encoded=false&key=${this.GRAPHHOPPER_KEY}`;
         const res = await axios.get(url, { timeout: 8000 });
         const route = res.data.paths[0];
         return {
@@ -153,8 +164,9 @@ class RouteWeatherService {
         };
     }
 
-    async _getMapboxRoute(start, end) {
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${start.lng},${start.lat};${end.lng},${end.lat}?geometries=geojson&overview=full&access_token=${this.MAPBOX_TOKEN}`;
+    async _getMapboxRoute(points) {
+        const coords = points.map(p => `${p.lng},${p.lat}`).join(';');
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?geometries=geojson&overview=full&access_token=${this.MAPBOX_TOKEN}`;
         const res = await axios.get(url, { timeout: 8000 });
         const route = res.data.routes[0];
         return {
@@ -171,10 +183,26 @@ class RouteWeatherService {
             console.log(`🔎 Buscando coordenadas para: "${query}"`);
 
             // 2. LIMPEZA: Troca os hífens " - " por vírgulas ", "
-            // O Nominatim entende melhor "Rua, Cidade" do que "Rua - Cidade"
             const cleanQuery = query.replace(/ - /g, ', ');
 
-            // 3. Monta a URL com a query limpa
+            // 3. TENTA MAPBOX PRIMEIRO
+            if (this.MAPBOX_TOKEN) {
+                try {
+                    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(cleanQuery)}.json?country=br&limit=1&access_token=${this.MAPBOX_TOKEN}`;
+                    const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
+
+                    if (res.data && res.data.features && res.data.features.length > 0) {
+                        const feature = res.data.features[0];
+                        console.log(`✅ Mapbox encontrou: ${feature.place_name.slice(0, 30)}...`);
+                        return { lat: feature.center[1], lng: feature.center[0] };
+                    }
+                } catch (e) {
+                    console.warn(`⚠️ Mapbox falhou (${e.message}). Tentando Nominatim como fallback...`);
+                }
+            }
+
+            // 4. FALLBACK: NOMINATIM
+            console.log(`🔄 Tentando Nominatim para: "${cleanQuery}"`);
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&countrycodes=br`;
 
             const res = await axios.get(url, {
@@ -182,31 +210,57 @@ class RouteWeatherService {
                 timeout: 5000
             });
 
-            // 4. LOG DE RESULTADO
             if (res.data && res.data[0]) {
-                console.log(`✅ Encontrado: ${res.data[0].display_name.slice(0, 30)}...`);
+                console.log(`✅ Nominatim encontrou: ${res.data[0].display_name.slice(0, 30)}...`);
                 return { lat: res.data[0].lat, lng: res.data[0].lon };
             } else {
-                console.warn(`❌ Nominatim não encontrou nada para: "${cleanQuery}"`);
+                console.warn(`❌ Nenhum serviço encontrou: "${cleanQuery}"`);
                 return null;
             }
 
         } catch (e) {
-            console.error(`🔥 Erro no Nominatim: ${e.message}`);
+            console.error(`🔥 Erro ao buscar coordenadas: ${e.message}`);
             return null;
         }
     }
 
     async _getCityName(lat, lng) {
+        if (this.MAPBOX_TOKEN) {
+            try {
+                const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?limit=1&types=place,locality&access_token=${this.MAPBOX_TOKEN}`;
+                const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
+
+                if (res.data && res.data.features && res.data.features.length > 0) {
+                    const feature = res.data.features[0];
+                    const addrCtx = feature.context || [];
+                    const isPlace = feature.id.startsWith('place');
+                    const city = isPlace ? feature.text : (addrCtx.find(c => c.id.startsWith('place'))?.text || feature.text);
+                    const stateCtx = addrCtx.find(c => c.id.startsWith('region'));
+
+                    let uf = "";
+                    if (stateCtx) {
+                        uf = BRAZIL_STATES[stateCtx.text] || stateCtx.short_code?.replace('BR-', '')?.toUpperCase() || stateCtx.text;
+                    }
+
+                    return uf ? `${city}, ${uf}` : city;
+                }
+            } catch (error) {
+                console.warn(`⚠️ Mapbox reverse falhou (${error.message}). Tentando Nominatim como fallback...`);
+            }
+        }
+
+        // FALLBACK: NOMINATIM
         try {
-            await new Promise(r => setTimeout(r, 600));
+            await new Promise(r => setTimeout(r, 600)); // Rate limit respiro
             const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`;
-            const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' } });
+            const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
             const addr = res.data.address;
             const city = addr.city || addr.town || addr.village || addr.municipality || "Estrada";
             const uf = BRAZIL_STATES[addr.state] || addr.state || "";
             return uf ? `${city}, ${uf}` : city;
-        } catch (error) { return "Trajeto"; }
+        } catch (error) {
+            return "Estrada";
+        }
     }
 
     async _getWeather(lat, lng, date) {
@@ -223,7 +277,7 @@ class RouteWeatherService {
         } catch (e) { return { temp: "--", code: 0 }; }
     }
 
-    async _processCheckpoints(routeData, departureTime) {
+    async _processCheckpoints(routeData, departureTime, userPoints = []) {
         if (!routeData || !routeData.path || !Array.isArray(routeData.path) || routeData.path.length === 0) {
             console.error("❌ Erro: O provedor de rota não retornou coordenadas (path vazio).");
             return [{
@@ -267,7 +321,8 @@ class RouteWeatherService {
                 weather: {
                     temp: weather.temp,
                     condition: this._translateWMO(weather.code)
-                }
+                },
+                isStopNode: false // flag auxiliar
             });
 
             if (timeOffset >= totalDuration) break;
@@ -276,6 +331,69 @@ class RouteWeatherService {
                 timeOffset = totalDuration;
             }
         }
+
+        // AGORA, FORÇAMOS A INJEÇÃO FÍSICA DAS PARADAS CASO ELAS TENHAM SE PERDIDO NO ALGORITMO DE TEMPO
+        // Isso garante que o frontend sempre receba as coordenadas exatas da origem, destino e de cada parada
+
+        // 1. Substituir o primeiro checkpoint pela Origem exata
+        if (checkpoints.length > 0 && userPoints.length > 0) {
+            const firstUserPoint = userPoints[0];
+            checkpoints[0].lat = firstUserPoint.lat;
+            checkpoints[0].lng = firstUserPoint.lng;
+            checkpoints[0].locationName = firstUserPoint.originalName;
+            checkpoints[0].isStopNode = true;
+        }
+
+        // 2. Substituir o último checkpoint pelo Destino exato
+        if (checkpoints.length > 1 && userPoints.length > 1) {
+            const lastUserPoint = userPoints[userPoints.length - 1];
+            const maxIdx = checkpoints.length - 1;
+            checkpoints[maxIdx].lat = lastUserPoint.lat;
+            checkpoints[maxIdx].lng = lastUserPoint.lng;
+            checkpoints[maxIdx].locationName = lastUserPoint.originalName;
+            checkpoints[maxIdx].isStopNode = true;
+        }
+
+        // 3. Injetar as Paradas intermediárias caso o frontend precise encontrá-las exatas
+        // userPoints[1] até userPoints.length - 2 são as paradas
+        if (userPoints.length > 2) {
+            const stops = userPoints.slice(1, userPoints.length - 1);
+
+            for (const stop of stops) {
+                // Encontrar o checkpoint mais próximo dessa parada
+                let closestIdx = 0;
+                let minDist = Infinity;
+
+                for (let i = 1; i < checkpoints.length - 1; i++) {
+                    const c = checkpoints[i];
+                    // Formula simples de distancia euclidiana porxima para achar o index na linha do tempo
+                    const dist = Math.pow(c.lat - stop.lat, 2) + Math.pow(c.lng - stop.lng, 2);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIdx = i;
+                    }
+                }
+
+                if (closestIdx > 0 && closestIdx < checkpoints.length - 1) {
+                    // Nós forçamos o checkpoint mais próximo a herdar os dados da parada para não quebrar a timeline
+                    const oldDist = checkpoints[closestIdx].distanceFromStart;
+                    const oldTime = checkpoints[closestIdx].formattedTime;
+                    const oldWeather = checkpoints[closestIdx].weather;
+
+                    // Cria ou atualiza um objeto bem formatado exatamente na posição temporal
+                    checkpoints[closestIdx] = {
+                        formattedTime: oldTime,
+                        lat: stop.lat,
+                        lng: stop.lng,
+                        locationName: stop.originalName, // Garanto locationName correto (no script.js isso vai pro card)
+                        distanceFromStart: oldDist,
+                        weather: oldWeather,
+                        isStopNode: true
+                    };
+                }
+            }
+        }
+
         return checkpoints;
     }
 
@@ -289,19 +407,64 @@ class RouteWeatherService {
         return table[code] || `Clima (${code})`;
     }
 
-    _checkCache(origin, dest, dateKey) {
+    _checkCache(routeKey, dateKey) {
         return new Promise((resolve) => {
-            db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND dest_text = ? AND trip_date = ?`,
-                [origin, dest, dateKey], (err, row) => {
+            db.get(`SELECT data FROM route_cache WHERE origin_text = ? AND trip_date = ?`,
+                [routeKey, dateKey], (err, row) => {
                     if (!err && row) return resolve(JSON.parse(row.data));
                     resolve(null);
                 });
         });
     }
 
-    _saveToCache(origin, dest, dateKey, data) {
-        db.run(`INSERT INTO route_cache (origin_text, dest_text, trip_date, data, created_at) VALUES (?, ?, ?, ?, ?)`,
-            [origin, dest, dateKey, JSON.stringify(data), Date.now()]);
+    _saveToCache(routeKey, dateKey, data) {
+        db.run(`INSERT INTO route_cache (origin_text, trip_date, data, created_at) VALUES (?, ?, ?, ?)`,
+            [routeKey, dateKey, JSON.stringify(data), Date.now()]);
+    }
+
+    async searchAddress(query) {
+        if (this.MAPBOX_TOKEN) {
+            try {
+                const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?country=br&limit=5&types=place,locality,neighborhood,address&access_token=${this.MAPBOX_TOKEN}`;
+                const res = await axios.get(url, { timeout: 5000 });
+
+                if (res.data && res.data.features && res.data.features.length > 0) {
+                    return res.data.features.map(f => {
+                        const cityCtx = f.context?.find(c => c.id.startsWith('place'));
+                        const stateCtx = f.context?.find(c => c.id.startsWith('region'));
+                        let stateName = stateCtx ? stateCtx.text : '';
+                        if (BRAZIL_STATES[stateName]) {
+                            stateName = BRAZIL_STATES[stateName];
+                        } else if (stateCtx && stateCtx.short_code) {
+                            stateName = stateCtx.short_code.replace('BR-', '').toUpperCase();
+                        }
+
+                        return {
+                            display_name: f.place_name,
+                            address: {
+                                city: cityCtx ? cityCtx.text : f.text,
+                                state: stateName
+                            },
+                            lat: f.center[1],
+                            lon: f.center[0]
+                        };
+                    });
+                }
+            } catch (e) {
+                console.warn(`⚠️ Mapbox Search falhou (${e.message}). Tentando Nominatim...`);
+            }
+        }
+
+        // FALLBACK: NOMINATIM
+        try {
+            console.log(`🔄 Search Fallback Nominatim para: "${query}"`);
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5&countrycodes=br`;
+            const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
+            return res.data || [];
+        } catch (e) {
+            console.error(`🔥 Erro final no Search: ${e.message}`);
+            return [];
+        }
     }
 }
 
@@ -309,13 +472,25 @@ const service = new RouteWeatherService();
 
 app.post('/api/forecast', apiLimiter, async (req, res) => {
     try {
-        const { origin, destination, date } = req.body;
+        const { origin, destination, stops, date } = req.body;
         if (!origin || !destination) return res.status(400).json({ error: "Origem e destino são obrigatórios." });
 
-        const data = await service.getRouteForecast(origin, destination, date);
+        const data = await service.getRouteForecast(origin, destination, stops || [], date);
         res.json(data);
     } catch (error) {
         console.error("ERRO CRÍTICO:", error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) return res.json([]);
+        const data = await service.searchAddress(q);
+        res.json(data);
+    } catch (error) {
+        console.error("ERRO SEARCH:", error.message);
         res.status(500).json({ error: error.message });
     }
 });
