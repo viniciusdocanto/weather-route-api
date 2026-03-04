@@ -39,3 +39,4 @@ audit_report.txt
 .project
 .settings/
 .classpath
+assets/js/script.min.js

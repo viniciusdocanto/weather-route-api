@@ -16,6 +16,19 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: 🛠️ Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: 📦 Install Dependencies
+      run: npm install
+
+    - name: 🏗️ Build Scripts
+      run: npm run build
+      env:
+        API_BASE_URL: ${{ secrets.API_BASE_URL }}
+
     - name: 📂 Sync files (Deploy)
       uses: SamKirkland/FTP-Deploy-Action@v4.3.5
       with:

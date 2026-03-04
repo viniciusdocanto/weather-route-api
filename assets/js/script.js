@@ -3,12 +3,8 @@ let map = null;
 let routeLayer = null;
 let markersLayer = null;
 
-// Configura dinamicamente a URL base da API
-// Se rodar no Hostinger (sites.docanto.net) ou outro domínio, usa o backend do Render
-// Se rodar localmente, usa 'api'
-let API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-    ? 'api'
-    : 'https://weather-route-api.onrender.com/api';
+// Em ambiente de Build com ESBuild, env variables de deploy.yml/Netlify são injetadas estaticamente aqui
+let API_BASE = process.env.API_BASE_URL;
 
 
 
