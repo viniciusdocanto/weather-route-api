@@ -26,7 +26,12 @@ window.onload = function () {
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
     initMap(); // Inicia o mapa (vazio)
-    updateVersion(); // Busca e exibe a versão do app
+
+    // Injeta a versão no footer fisicamente compilada
+    if (process.env.APP_VERSION) {
+        const verEl = document.getElementById('app-version');
+        if (verEl) verEl.textContent = `v${process.env.APP_VERSION}`;
+    }
 };
 
 
@@ -80,22 +85,7 @@ function setupAutocomplete(inputId, listId) {
 setupAutocomplete('origin', 'origin-list');
 setupAutocomplete('destination', 'destination-list');
 
-async function updateVersion() {
-    try {
-        const res = await fetch(`${API_BASE}/version`);
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        const data = await res.json();
-        if (data.version) {
-            document.getElementById('app-version').textContent = `v${data.version}`;
-        }
-        if (data.apiBaseUrl) {
-            API_BASE = data.apiBaseUrl;
-            console.log(`📡 API configurada para: ${API_BASE}`);
-        }
-    } catch (e) {
-        console.warn("Não foi possível carregar a versão ou configuração.");
-    }
-}
+
 
 // --- 2.5 Lógica de Paradas ---
 let stopCount = 0;

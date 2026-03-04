@@ -8,8 +8,12 @@ require('dotenv').config();
 // Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão de desenvolvimento
 const API_BASE = process.env.API_BASE_URL || '/api';
 
+// Pega a versão real do package.json para injetar sem precisar de fecth na API
+const APP_VERSION = require('./package.json').version;
+
 console.log('🚧 Iniciando Build do Frontend...');
 console.log(`🔗 Injetando API_BASE: ${API_BASE}`);
+console.log(`🏷️  Injetando APP_VERSION: ${APP_VERSION}`);
 
 // 1. Build do JavaScript
 esbuild.build({
@@ -19,7 +23,8 @@ esbuild.build({
     outfile: 'assets/js/script.min.js',
     define: {
         // Substitumos fisicamente o valor no bundle gerado.
-        'process.env.API_BASE_URL': `"${API_BASE}"`
+        'process.env.API_BASE_URL': `"${API_BASE}"`,
+        'process.env.APP_VERSION': `"${APP_VERSION}"`
     }
 }).then(() => {
     console.log('✅ Build do Javascript concluído com sucesso!');
