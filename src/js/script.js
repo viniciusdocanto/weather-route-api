@@ -91,7 +91,7 @@ setupAutocomplete('destination', 'destination-list');
 
 // --- 2.5 Lógica de Paradas ---
 let stopCount = 0;
-function adicionarParada() {
+window.adicionarParada = function adicionarParada() {
     stopCount++;
     const id = `stop-${stopCount}`;
     const listId = `stop-list-${stopCount}`;
@@ -114,7 +114,7 @@ function adicionarParada() {
     setupAutocomplete(id, listId);
 }
 
-function removerParada(id) {
+window.removerParada = function removerParada(id) {
     const div = document.getElementById(`group-${id}`);
     div.classList.add('removing'); // Opcional: adicionar animação de saída no CSS
     setTimeout(() => div.remove(), 100);
@@ -123,7 +123,7 @@ function removerParada(id) {
 // --- 3. Lógica Principal ---
 let isFirstSearch = true;
 
-async function calcularRota() {
+window.calcularRota = async function calcularRota() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
     const date = document.getElementById('trip-date').value;
