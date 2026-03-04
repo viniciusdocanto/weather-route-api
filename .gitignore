@@ -40,3 +40,6 @@ audit_report.txt
 .settings/
 .classpath
 assets/js/script.min.js
+assets/css/
+assets/img/
+assets/js/
