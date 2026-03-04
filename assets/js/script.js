@@ -2,7 +2,13 @@
 let map = null;
 let routeLayer = null;
 let markersLayer = null;
-let API_BASE = 'api';
+
+// Configura dinamicamente a URL base da API
+// Se rodar no Hostinger (sites.docanto.net) ou outro domínio, usa o backend do Render
+// Se rodar localmente, usa 'api'
+let API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'api'
+    : 'https://weather-route-api.onrender.com/api';
 
 
 
