@@ -195,10 +195,7 @@ window.calcularRota = async function calcularRota() {
         // --- PASSO 2: ATUALIZAR MAPA ---
         if (isFirstSearch) {
             mapContainer.classList.remove('hidden');
-            // Pequeno delay para a transição de opacidade funcionar
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 100);
+            map.invalidateSize(); // Inicial imediato
         }
 
         // Limpa camadas antigas
@@ -215,7 +212,17 @@ window.calcularRota = async function calcularRota() {
             style: { color: '#1a73e8', weight: 5, opacity: 0.8 } // Azul Google Maps
         }).addTo(map);
 
-        map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] }); // Ajusta zoom com margem
+        // Garante que o mapa reconheça o novo tamanho antes de ajustar os limites
+        map.invalidateSize();
+
+        try {
+            const bounds = routeLayer.getBounds();
+            if (bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [50, 50], animate: !isFirstSearch });
+            }
+        } catch (e) {
+            console.warn("Erro ao calcular bounds:", e);
+        }
 
         // Remove o estado de carregamento
         setTimeout(() => {
@@ -224,6 +231,10 @@ window.calcularRota = async function calcularRota() {
                 mapOverlay.classList.add('opacity-0', 'pointer-events-none');
             }
             map.invalidateSize();
+            // Backup fitBounds caso o primeiro tenha falhado por tamanho 0
+            const bounds = routeLayer.getBounds();
+            if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
+
             isFirstSearch = false; // A partir de agora, o mapa já foi revelado
         }, 300);
 
