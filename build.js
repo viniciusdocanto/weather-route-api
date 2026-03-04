@@ -68,12 +68,14 @@ async function optimizeImages() {
             // Se for arquivo (prevenir travamento com pastas)
             if (fs.lstatSync(srcPath).isFile()) {
                 if (file.match(/\.(png|jpe?g|webp)$/i)) {
+                    // Converte forçosamente a extensão de saída para .webp
+                    const webpFile = file.replace(/\.(png|jpe?g)$/i, '.webp');
+                    const webpDestPath = path.join(destDir, webpFile);
+
                     await sharp(srcPath)
-                        .png({ quality: 80, compressionLevel: 8 }) // Qualidade PNG com compressão lenta e eficiente
-                        .jpeg({ quality: 80, progressive: true }) // Carregamento progressivo para JPEG
-                        .webp({ quality: 80 })
-                        .toFile(destPath);
-                    console.log(`✅ Imagem otimizada: ${file}`);
+                        .webp({ quality: 80, effort: 6 })
+                        .toFile(webpDestPath);
+                    console.log(`✅ Imagem convertida e otimizada (WebP): ${webpFile}`);
                 } else {
                     // SVG, ICO ou outros arquivos que não necessitam de conversão
                     fs.copyFileSync(srcPath, destPath);

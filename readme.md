@@ -31,7 +31,8 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - HTML5, SCSS & JavaScript Puro (Vanilla)
 - ESBuild (Bundler e Minificador JS rápido)
 - Sass (Pré-processador de CSS nativo)
-- Sharp (Conversor e Esmagador de imagens node de altíssima velocidade)**APIs Externas (Gratuitas/Open Source):**
+- Sharp (Conversor e Esmagador de imagens node de altíssima velocidade)
+**APIs Externas (Gratuitas/Open Source):**
 - 🗺️ **Mapbox Geocoding:** Geocodificação (Texto ↔ Coordenadas) (Principal).
 - 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas) (Fallback caso Mapbox falhe).
 - 🛣️ **OSRM / GraphHopper / Mapbox:** Cálculo de rotas e geometria.
