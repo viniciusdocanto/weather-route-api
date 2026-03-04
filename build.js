@@ -16,22 +16,35 @@ console.log(`🔗 Injetando API_BASE: ${API_BASE}`);
 console.log(`🏷️  Injetando APP_VERSION: ${APP_VERSION}`);
 
 // 1. Build do JavaScript
-esbuild.build({
-    entryPoints: ['src/js/script.js'],
-    bundle: true,
-    minify: true,
-    outfile: 'assets/js/script.min.js',
-    define: {
-        // Substitumos fisicamente o valor no bundle gerado usando stringify para evitar escapes ou erros sintáticos
-        'process.env.API_BASE_URL': JSON.stringify(API_BASE),
-        'process.env.APP_VERSION': JSON.stringify(APP_VERSION)
+const isWatchMode = process.argv.includes('--watch');
+
+async function buildJS() {
+    try {
+        const ctx = await esbuild.context({
+            entryPoints: ['src/js/script.js'],
+            bundle: true,
+            minify: true,
+            outfile: 'assets/js/script.min.js',
+            define: {
+                'process.env.API_BASE_URL': JSON.stringify(API_BASE),
+                'process.env.APP_VERSION': JSON.stringify(APP_VERSION)
+            }
+        });
+
+        if (isWatchMode) {
+            await ctx.watch();
+            console.log('👀 Observando mudanças no JS...');
+        } else {
+            await ctx.rebuild();
+            await ctx.dispose();
+            console.log('✅ Build do Javascript concluído com sucesso!');
+        }
+    } catch (err) {
+        console.error('❌ Erro no build do JS:', err);
+        if (!isWatchMode) process.exit(1);
     }
-}).then(() => {
-    console.log('✅ Build do Javascript concluído com sucesso!');
-}).catch((err) => {
-    console.error('❌ Erro no build do JS:', err);
-    process.exit(1);
-});
+}
+buildJS();
 
 // 2. Build do SCSS com Tailwind CSS (PostCSS)
 async function buildCSS() {
@@ -41,10 +54,8 @@ async function buildCSS() {
             return;
         }
 
-        // Primeiro: Compila SCSS Nativo
         const sassResult = sass.compile('src/scss/style.scss');
 
-        // Segundo: Passa o resultado pelo PostCSS (para Tailwind e Autoprefixer)
         const postcss = require('postcss');
         const tailwindcss = require('tailwindcss');
         const autoprefixer = require('autoprefixer');
@@ -56,17 +67,32 @@ async function buildCSS() {
 
         if (!fs.existsSync('assets/css')) fs.mkdirSync('assets/css', { recursive: true });
 
-        // Terceiro: Minifica o CSS final usando ESBuild internamente (mais veloz que outro minifyer)
         const finalMinified = await esbuild.transform(postcssResult.css, { loader: 'css', minify: true });
 
         fs.writeFileSync('assets/css/style.min.css', finalMinified.code);
-        console.log('✅ Compilação SCSS + Tailwind + Minificação concluída com sucesso!');
+        console.log('✅ Compilação SCSS + Tailwind + Minificação concluída...');
 
     } catch (err) {
         console.error('❌ Erro no build do SCSS/Tailwind:', err);
     }
 }
 buildCSS();
+
+if (isWatchMode) {
+    console.log('👀 Observando mudanças nos arquivos SCSS e Tailwind...');
+    // Observa Tailwind config e arquivos HTML também, pois afetam o CSS gerado
+    const watchPaths = ['src/scss', 'index.html', 'tailwind.config.js'];
+    watchPaths.forEach(watchPath => {
+        if (fs.existsSync(watchPath)) {
+            fs.watch(watchPath, { recursive: true }, (eventType, filename) => {
+                if (filename && (filename.endsWith('.scss') || filename.endsWith('.html') || filename.endsWith('.js'))) {
+                    console.log(`🔄 Arquivo modificado: ${filename}. Recompilando CSS...`);
+                    buildCSS();
+                }
+            });
+        }
+    });
+}
 
 // 3. Otimização de Imagens (Sharp)
 async function optimizeImages() {

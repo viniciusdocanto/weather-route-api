@@ -1,156 +1,41 @@
-// --- 1. Inicialização do Mapa ---
-let map = null;
-let routeLayer = null;
-let markersLayer = null;
+import { fetchRouteForecast } from './api.js';
+import { initMap, updateMapRoute, clearMarkers, addMarker, map } from './map.js';
+import { setupAutocomplete, bindStopsUI } from './ui.js';
 
-// Em ambiente de Build com ESBuild, env variables de deploy.yml são injetadas estaticamente aqui
-// Fallback para a URL de produção caso o secret não seja injetado corretamente
-const API_BASE = process.env.API_BASE_URL || 'https://weather-route-api.onrender.com/api';
+let isFirstSearch = true;
 
-
-
-function initMap() {
-    // Cria o mapa centrado no Brasil (zoom level baixo)
-    map = L.map('map').setView([-14.235, -51.925], 4);
-
-    // Adiciona os "Tiles" do OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    markersLayer = L.layerGroup().addTo(map);
-}
-
-// --- 2. Utilitários (Autocomplete e Data) ---
 window.onload = function () {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
-    initMap(); // Inicia o mapa (vazio)
 
-    // Injeta a versão no footer fisicamente compilada
+    initMap();
+
     if (process.env.APP_VERSION) {
         const verEl = document.getElementById('app-version');
         if (verEl) verEl.textContent = `v${process.env.APP_VERSION}`;
     }
+
+    setupAutocomplete('origin', 'origin-list');
+    setupAutocomplete('destination', 'destination-list');
+    bindStopsUI();
 };
-
-
-async function searchAddress(query) {
-    if (!query || query.length < 3) return [];
-
-    // Tira a "/" final caso já venha na variável do Node e adiciona a respectiva barra
-    const safeBase = API_BASE.replace(/\/$/, '');
-    const url = `${safeBase}/search?q=${encodeURIComponent(query)}`;
-    try {
-        const response = await fetch(url);
-        if (!response.ok) return [];
-        return await response.json();
-    } catch (e) {
-        return [];
-    }
-}
-
-function setupAutocomplete(inputId, listId) {
-    let debounceTimer;
-    const input = document.getElementById(inputId);
-    const list = document.getElementById(listId);
-    input.addEventListener('input', function () {
-        const value = this.value;
-        clearTimeout(debounceTimer);
-        if (!value) { list.classList.add('hidden'); return; }
-        debounceTimer = setTimeout(async () => {
-            const places = await searchAddress(value);
-            list.innerHTML = '';
-            if (places.length > 0) {
-                list.classList.remove('hidden');
-                places.forEach(place => {
-                    const item = document.createElement('div');
-                    item.className = 'px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b border-slate-100 dark:border-slate-700 last:border-0 transition-colors';
-                    const addr = place.address;
-                    const main = addr.city || addr.town || addr.village || place.display_name.split(',')[0];
-                    const state = addr.state || '';
-                    const txt = state ? `${main} - ${state}` : main;
-                    const strong = document.createElement('strong');
-                    strong.className = 'block text-slate-700 dark:text-slate-200 font-semibold text-sm';
-                    strong.textContent = txt;
-                    const small = document.createElement('small');
-                    small.className = 'block text-slate-400 dark:text-slate-500 text-xs mt-0.5 truncate';
-                    small.textContent = place.display_name;
-                    item.appendChild(strong);
-                    item.appendChild(small);
-                    item.addEventListener('click', () => { input.value = txt; list.classList.add('hidden'); });
-                    list.appendChild(item);
-                });
-            } else list.classList.add('hidden');
-        }, 500);
-    });
-    document.addEventListener('click', (e) => { if (e.target !== input) list.classList.add('hidden'); });
-}
-setupAutocomplete('origin', 'origin-list');
-setupAutocomplete('destination', 'destination-list');
-
-
-
-// --- 2.5 Lógica de Paradas ---
-let stopCount = 0;
-window.adicionarParada = function adicionarParada() {
-    stopCount++;
-    const id = `stop-${stopCount}`;
-    const listId = `stop-list-${stopCount}`;
-
-    const container = document.getElementById('stops-container');
-    const div = document.createElement('div');
-    div.className = 'relative group bg-white/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl p-4 transition-all hover:border-indigo-300 dark:hover:border-indigo-600';
-    div.id = `group-${id}`;
-
-    div.innerHTML = `
-        <label for="${id}" class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">Parada</label>
-        <div class="relative">
-            <span class="absolute left-4 top-3.5 text-teal-500">📌</span>
-            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off" aria-label="Cidade intermediária"
-                class="w-full pl-11 pr-12 py-3.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium text-slate-700 dark:text-slate-200">
-            <button class="absolute right-3 top-3.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-1 rounded-md transition-colors" onclick="removerParada('${id}')" aria-label="Remover parada">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-            </button>
-        </div>
-        <div id="${listId}" class="autocomplete-list absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 max-h-60 overflow-y-auto hidden"></div>
-    `;
-
-    container.appendChild(div);
-    setupAutocomplete(id, listId);
-}
-
-window.removerParada = function removerParada(id) {
-    const div = document.getElementById(`group-${id}`);
-    div.classList.add('opacity-0', 'scale-95');
-    setTimeout(() => div.remove(), 200);
-}
-
-// --- 3. Lógica Principal ---
-let isFirstSearch = true;
 
 window.calcularRota = async function calcularRota() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
     const date = document.getElementById('trip-date').value;
 
-    // Coletar paradas
     const stops = Array.from(document.querySelectorAll('#stops-container input'))
         .map(input => input.value)
         .filter(val => val.trim() !== "");
 
     const resultsDiv = document.getElementById('results');
-    const mapDiv = document.getElementById('map');
     const mapContainer = document.getElementById('map-container');
     const mapOverlay = document.getElementById('map-overlay');
 
-    const safeBase = API_BASE.replace(/\/$/, '');
-    const API_URL = `${safeBase}/forecast`;
-
     if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 
-    // --- PASSO 1: ESTADO DE CARREGAMENTO ---
     if (!isFirstSearch) {
         mapOverlay.classList.remove('opacity-0', 'pointer-events-none');
         mapOverlay.classList.add('opacity-100');
@@ -165,17 +50,7 @@ window.calcularRota = async function calcularRota() {
     `;
 
     try {
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ origin, destination, stops, date })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok && !data.error) {
-            throw new Error(`Erro HTTP: ${response.status}`);
-        }
+        const data = await fetchRouteForecast(origin, destination, stops, date);
 
         resultsDiv.innerHTML = '';
 
@@ -192,83 +67,38 @@ window.calcularRota = async function calcularRota() {
             return;
         }
 
-        // --- PASSO 2: ATUALIZAR MAPA ---
         if (isFirstSearch) {
             mapContainer.classList.remove('hidden');
-            map.invalidateSize(); // Inicial imediato
         }
 
-        // Limpa camadas antigas
-        if (routeLayer) map.removeLayer(routeLayer);
-        markersLayer.clearLayers();
+        updateMapRoute(data.routeGeo, isFirstSearch);
+        clearMarkers();
 
-        // Desenha a linha da rota
-        const routeGeoJSON = {
-            "type": "LineString",
-            "coordinates": data.routeGeo
-        };
-
-        routeLayer = L.geoJSON(routeGeoJSON, {
-            style: { color: '#1a73e8', weight: 5, opacity: 0.8 } // Azul Google Maps
-        }).addTo(map);
-
-        // Garante que o mapa reconheça o novo tamanho antes de ajustar os limites
-        map.invalidateSize();
-
-        try {
-            const bounds = routeLayer.getBounds();
-            if (bounds.isValid()) {
-                map.fitBounds(bounds, { padding: [50, 50], animate: !isFirstSearch });
-            }
-        } catch (e) {
-            console.warn("Erro ao calcular bounds:", e);
-        }
-
-        // Remove o estado de carregamento
         setTimeout(() => {
             if (!isFirstSearch) {
                 mapOverlay.classList.remove('opacity-100');
                 mapOverlay.classList.add('opacity-0', 'pointer-events-none');
             }
-            map.invalidateSize();
-            // Backup fitBounds caso o primeiro tenha falhado por tamanho 0
-            const bounds = routeLayer.getBounds();
-            if (bounds.isValid()) map.fitBounds(bounds, { padding: [50, 50] });
 
-            isFirstSearch = false; // A partir de agora, o mapa já foi revelado
+            if (map) map.invalidateSize();
+            isFirstSearch = false;
         }, 300);
 
-        // --- PASSO 3: LISTA E MARCADORES (INICIAL/FINAL/PARADAS) ---
         data.checkpoints.forEach((item, index) => {
-
             const isStart = index === 0;
             const isEnd = index === data.checkpoints.length - 1;
-
-            // NOVA LÓGICA: O Backend agora injeta a flag isStopNode
             const isIntermediateStop = !isStart && !isEnd && item.isStopNode;
 
-            // Adiciona marcador para Início, Fim E Paradas marcadas
             if (isStart || isEnd || isIntermediateStop) {
-                const marker = L.marker([item.lat, item.lng]).addTo(markersLayer);
-
                 let title = "📍 Parada";
                 if (isStart) title = "🚩 Partida";
                 if (isEnd) title = "🏁 Chegada";
 
-                marker.bindPopup(`
-                    <div style="text-align:center;">
-                        <strong>${title}</strong><br>
-                        ${item.locationName}<br>
-                        <span style="font-size:1.2em">${item.weather.condition} ${item.weather.temp}°C</span>
-                    </div>
-                `);
-
+                addMarker(item.lat, item.lng, title, item.locationName, item.weather.temp, item.weather.condition);
             }
 
-            // Lista detalhada (Textual)
             let kmText = (item.distanceFromStart === 0) ? `Km 0` : `Km ${item.distanceFromStart || '--'}`;
 
-            // Badge de status: Partida, Chegada ou Parada Programada
             let statusLabel = '';
             if (isStart) {
                 statusLabel = '<span class="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">📍 Partida</span>';

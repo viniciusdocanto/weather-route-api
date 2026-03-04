@@ -22,16 +22,19 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **Performance:** Configuração de cache de longo prazo (TTL eficiente de 1 ano) para ativos estáticos (CSS/JS), melhorando drasticamente a pontuação de velocidade no carregamento de navegadores recorrentes.
 - **Flexibilidade de Hospedagem:** Correção de chamadas de API relativas, permitindo a implantação em subdiretórios perfeitamente integrada.
 - **Node Build Automático (ESBuild):** Pipeline nativa acoplada para empacotar todo código Javascript do projeto (substituindo process.env do server no frontend), permitindo hospedagens JAMStack sem dores de cabeça.
-- **Otimização de Assets (Scss/Sharp):** Minificação automática de folhas de estilo `.scss` e compressão inteligente em *batch* de imagens via `sharp` para preservar banda do usuário em conexões 3G na estrada.## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tecnologias Utilizadas
 
 **Backend:**
 - Node.js & Express
 - SQLite3 (Banco de dados local para Cache)
 - Axios (Requisições HTTP)
+- Helmet & CORS (Segurança de API e Cabeçalhos HTTP)
+- Arquitetura MVC Modular (Rotas, Serviços e Configurações separadas)
 
 **Frontend & Build Pipeline:**
-- HTML5, SCSS & JavaScript Puro (Vanilla)
-- ESBuild (Bundler e Minificador JS rápido)
+- HTML5, SCSS & JavaScript Puro (ES6 Modules: api.js, map.js, ui.js)
+- ESBuild (Bundler e Minificador JS rápido com suporte a Watch Mode)
+- Concurrently (Execução paralela de servidor e build em desenvolvimento)
 - Sass (Pré-processador de CSS nativo)
 - Sharp (Conversor e Esmagador de imagens node de altíssima velocidade)
 **APIs Externas (Gratuitas/Open Source):**
