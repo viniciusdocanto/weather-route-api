@@ -255,10 +255,17 @@ window.calcularRota = async function calcularRota() {
             }
 
             // Lista detalhada (Textual)
-            let kmText = (item.distanceFromStart === 0) ? "📍 Partida" : `🚗 Km ${item.distanceFromStart || '--'}`;
+            let kmText = (item.distanceFromStart === 0) ? `Km 0` : `Km ${item.distanceFromStart || '--'}`;
 
-            // Destaca a parada na timeline
-            const stopLabel = isIntermediateStop ? '<span class="text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">Parada Programada</span>' : '';
+            // Badge de status: Partida, Chegada ou Parada Programada
+            let statusLabel = '';
+            if (isStart) {
+                statusLabel = '<span class="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">📍 Partida</span>';
+            } else if (isEnd) {
+                statusLabel = '<span class="text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">🏁 Chegada</span>';
+            } else if (isIntermediateStop) {
+                statusLabel = '<span class="text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">📌 Parada</span>';
+            }
 
             resultsDiv.innerHTML += `
                 <div class="relative pl-6 pb-8 border-l-2 ${isIntermediateStop ? 'border-teal-400' : 'border-indigo-200'} last:border-0 last:pb-0 group">
@@ -266,11 +273,11 @@ window.calcularRota = async function calcularRota() {
                     
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
                         <div class="flex-1">
-                            ${stopLabel}
+                            ${statusLabel}
                             <h3 class="text-slate-800 dark:text-slate-100 font-bold text-lg">${item.locationName}</h3>
                             <div class="flex items-center text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 gap-3">
                                 <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${item.formattedTime}</span>
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>${kmText}</span>
+                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>🚗 ${kmText}</span>
                             </div>
                         </div>
                         
