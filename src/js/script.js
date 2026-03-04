@@ -38,7 +38,9 @@ window.onload = function () {
 async function searchAddress(query) {
     if (!query || query.length < 3) return [];
 
-    const url = `${API_BASE}/search?q=${encodeURIComponent(query)}`;
+    // Tira a "/" final caso já venha na variável do Node e adiciona a respectiva barra
+    const safeBase = API_BASE.replace(/\/$/, '');
+    const url = `${safeBase}/search?q=${encodeURIComponent(query)}`;
     try {
         const response = await fetch(url);
         if (!response.ok) return [];
@@ -136,7 +138,8 @@ async function calcularRota() {
     const mapContainer = document.getElementById('map-container');
     const mapOverlay = document.getElementById('map-overlay');
 
-    const API_URL = `${API_BASE}/forecast`;
+    const safeBase = API_BASE.replace(/\/$/, '');
+    const API_URL = `${safeBase}/forecast`;
 
     if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
 

@@ -22,9 +22,9 @@ esbuild.build({
     minify: true,
     outfile: 'assets/js/script.min.js',
     define: {
-        // Substitumos fisicamente o valor no bundle gerado.
-        'process.env.API_BASE_URL': `"${API_BASE}"`,
-        'process.env.APP_VERSION': `"${APP_VERSION}"`
+        // Substitumos fisicamente o valor no bundle gerado usando stringify para evitar escapes ou erros sintáticos
+        'process.env.API_BASE_URL': JSON.stringify(API_BASE),
+        'process.env.APP_VERSION': JSON.stringify(APP_VERSION)
     }
 }).then(() => {
     console.log('✅ Build do Javascript concluído com sucesso!');
