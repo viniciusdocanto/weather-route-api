@@ -251,7 +251,6 @@ window.calcularRota = async function calcularRota() {
                     </div>
                 `);
 
-                if (isEnd) marker.openPopup();
             }
 
             // Lista detalhada (Textual)
