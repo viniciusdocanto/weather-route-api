@@ -57,32 +57,34 @@ function setupAutocomplete(inputId, listId) {
     input.addEventListener('input', function () {
         const value = this.value;
         clearTimeout(debounceTimer);
-        if (!value) { list.classList.remove('active'); return; }
+        if (!value) { list.classList.add('hidden'); return; }
         debounceTimer = setTimeout(async () => {
             const places = await searchAddress(value);
             list.innerHTML = '';
             if (places.length > 0) {
-                list.classList.add('active');
+                list.classList.remove('hidden');
                 places.forEach(place => {
                     const item = document.createElement('div');
-                    item.className = 'autocomplete-item';
+                    item.className = 'px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-100 last:border-0 transition-colors';
                     const addr = place.address;
                     const main = addr.city || addr.town || addr.village || place.display_name.split(',')[0];
                     const state = addr.state || '';
                     const txt = state ? `${main} - ${state}` : main;
                     const strong = document.createElement('strong');
+                    strong.className = 'block text-slate-700 font-semibold text-sm';
                     strong.textContent = txt;
                     const small = document.createElement('small');
+                    small.className = 'block text-slate-400 text-xs mt-0.5 truncate';
                     small.textContent = place.display_name;
                     item.appendChild(strong);
                     item.appendChild(small);
-                    item.addEventListener('click', () => { input.value = txt; list.classList.remove('active'); });
+                    item.addEventListener('click', () => { input.value = txt; list.classList.add('hidden'); });
                     list.appendChild(item);
                 });
-            } else list.classList.remove('active');
+            } else list.classList.add('hidden');
         }, 500);
     });
-    document.addEventListener('click', (e) => { if (e.target !== input) list.classList.remove('active'); });
+    document.addEventListener('click', (e) => { if (e.target !== input) list.classList.add('hidden'); });
 }
 setupAutocomplete('origin', 'origin-list');
 setupAutocomplete('destination', 'destination-list');
@@ -98,16 +100,20 @@ window.adicionarParada = function adicionarParada() {
 
     const container = document.getElementById('stops-container');
     const div = document.createElement('div');
-    div.className = 'stop-group';
+    div.className = 'relative group bg-white/50 border border-slate-200 rounded-2xl p-4 transition-all hover:border-indigo-300';
     div.id = `group-${id}`;
 
     div.innerHTML = `
-        <div class="form-group">
-            <label for="${id}">Parada:</label>
-            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off" aria-label="Cidade intermediária">
-            <div id="${listId}" class="autocomplete-list"></div>
+        <label for="${id}" class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Parada</label>
+        <div class="relative">
+            <span class="absolute left-4 top-3.5 text-teal-500">📌</span>
+            <input type="text" id="${id}" placeholder="Cidade intermediária..." autocomplete="off" aria-label="Cidade intermediária"
+                class="w-full pl-11 pr-12 py-3.5 bg-white border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-xl outline-none transition-all placeholder:text-slate-400 font-medium text-slate-700">
+            <button class="absolute right-3 top-3.5 text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition-colors" onclick="removerParada('${id}')" aria-label="Remover parada">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
         </div>
-        <button class="btn-remove" onclick="removerParada('${id}')" aria-label="Remover parada">×</button>
+        <div id="${listId}" class="autocomplete-list absolute z-50 w-full mt-2 bg-white rounded-xl shadow-xl border border-slate-100 max-h-60 overflow-y-auto hidden"></div>
     `;
 
     container.appendChild(div);
@@ -116,8 +122,8 @@ window.adicionarParada = function adicionarParada() {
 
 window.removerParada = function removerParada(id) {
     const div = document.getElementById(`group-${id}`);
-    div.classList.add('removing'); // Opcional: adicionar animação de saída no CSS
-    setTimeout(() => div.remove(), 100);
+    div.classList.add('opacity-0', 'scale-95');
+    setTimeout(() => div.remove(), 200);
 }
 
 // --- 3. Lógica Principal ---
@@ -145,15 +151,15 @@ window.calcularRota = async function calcularRota() {
 
     // --- PASSO 1: ESTADO DE CARREGAMENTO ---
     if (!isFirstSearch) {
-        mapOverlay.classList.add('active');
-        mapDiv.classList.add('loading');
+        mapOverlay.classList.remove('opacity-0', 'pointer-events-none');
+        mapOverlay.classList.add('opacity-100');
     }
 
     resultsDiv.innerHTML = `
-        <div style="text-align:center; padding: 40px; color: #666;">
-            <div class="spinner" style="margin: 0 auto 20px;"></div>
-            <strong>Calculando rota e clima...</strong><br>
-            <small>Aguarde um momento</small>
+        <div class="flex flex-col items-center justify-center py-12 text-slate-500">
+            <div class="w-10 h-10 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
+            <strong class="text-lg text-slate-700">Calculando sua rota mágica...</strong>
+            <span class="text-sm mt-1">Isso geralmente leva poucos segundos</span>
         </div>
     `;
 
@@ -174,26 +180,24 @@ window.calcularRota = async function calcularRota() {
 
         if (data.error) {
             const errorElement = document.createElement('p');
-            errorElement.style.color = 'red';
-            errorElement.style.textAlign = 'center';
-            errorElement.textContent = data.error;
+            errorElement.className = 'text-red-500 font-medium text-center py-8 bg-red-50 rounded-2xl border border-red-100';
+            errorElement.textContent = `Atenção: ${data.error}`;
             resultsDiv.appendChild(errorElement);
 
             if (!isFirstSearch) {
-                mapOverlay.classList.remove('active');
-                mapDiv.classList.remove('loading');
+                mapOverlay.classList.remove('opacity-100');
+                mapOverlay.classList.add('opacity-0', 'pointer-events-none');
             }
             return;
         }
 
         // --- PASSO 2: ATUALIZAR MAPA ---
         if (isFirstSearch) {
-            mapContainer.style.display = 'block';
+            mapContainer.classList.remove('hidden');
             // Pequeno delay para a transição de opacidade funcionar
             setTimeout(() => {
-                mapContainer.classList.add('visible');
                 map.invalidateSize();
-            }, 10);
+            }, 100);
         }
 
         // Limpa camadas antigas
@@ -215,8 +219,8 @@ window.calcularRota = async function calcularRota() {
         // Remove o estado de carregamento
         setTimeout(() => {
             if (!isFirstSearch) {
-                mapOverlay.classList.remove('active');
-                mapDiv.classList.remove('loading');
+                mapOverlay.classList.remove('opacity-100');
+                mapOverlay.classList.add('opacity-0', 'pointer-events-none');
             }
             map.invalidateSize();
             isFirstSearch = false; // A partir de agora, o mapa já foi revelado
@@ -254,33 +258,36 @@ window.calcularRota = async function calcularRota() {
             let kmText = (item.distanceFromStart === 0) ? "📍 Partida" : `🚗 Km ${item.distanceFromStart || '--'}`;
 
             // Destaca a parada na timeline
-            const stopClass = isIntermediateStop ? 'stop-highlight' : '';
-            const stopLabel = isIntermediateStop ? '<span style="color:#e67c73; font-weight:bold; font-size:0.8rem; display:block">📍 Parada Programada</span>' : '';
+            const stopLabel = isIntermediateStop ? '<span class="text-teal-600 bg-teal-50 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">Parada Programada</span>' : '';
 
             resultsDiv.innerHTML += `
-                <div class="timeline-item ${stopClass}" ${isIntermediateStop ? 'style="border-left: 4px solid #e67c73;"' : ''}>
-                    <div class="time-badge">
-                        ${item.formattedTime.split(' ')[0]}<br>
-                        <small>${item.formattedTime.split(' ')[1] || ''}</small>
-                    </div>
-                    <div class="info">
-                        ${stopLabel}
-                        <span class="city-name">${item.locationName}</span>
-                        <span class="city-meta">${kmText}</span>
-                    </div>
-                    <div class="weather-box">
-                        <span class="weather-temp">${item.weather.temp}°C</span>
-                        <span class="weather-cond">${item.weather.condition}</span>
+                <div class="relative pl-6 pb-8 border-l-2 ${isIntermediateStop ? 'border-teal-400' : 'border-indigo-200'} last:border-0 last:pb-0 group">
+                    <div class="absolute left-[-9px] top-1 w-4 h-4 rounded-full ${isIntermediateStop ? 'bg-teal-400 ring-4 ring-teal-50' : 'bg-indigo-400 ring-4 ring-indigo-50'} shadow-sm transition-transform group-hover:scale-125"></div>
+                    
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 hover:bg-white p-4 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
+                        <div class="flex-1">
+                            ${stopLabel}
+                            <h3 class="text-slate-800 font-bold text-lg">${item.locationName}</h3>
+                            <div class="flex items-center text-sm text-slate-500 font-medium mt-1 gap-3">
+                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${item.formattedTime}</span>
+                                <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>${kmText}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col items-end min-w-[100px] p-3 bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-xl border border-indigo-100/50">
+                            <span class="text-2xl font-bold text-indigo-700 tracking-tight">${item.weather.temp}°C</span>
+                            <span class="text-xs font-semibold text-indigo-500/80 uppercase tracking-wide mt-0.5">${item.weather.condition}</span>
+                        </div>
                     </div>
                 </div>`;
         });
 
     } catch (error) {
         console.error(error);
-        resultsDiv.innerHTML = '<p style="color:red; text-align:center">Erro ao conectar com o servidor.</p>';
+        resultsDiv.innerHTML = '<div class="p-6 bg-red-50 text-red-600 rounded-2xl border border-red-100 text-center font-medium">Erro crítico ao conectar com o serviço de Rotas.</div>';
         if (!isFirstSearch) {
-            mapOverlay.classList.remove('active');
-            mapDiv.classList.remove('loading');
+            mapOverlay.classList.remove('opacity-100');
+            mapOverlay.classList.add('opacity-0', 'pointer-events-none');
         }
     }
 }

@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="antialiased">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WeatherTrip - Previsão do Tempo para sua Viagem</title>
+    <title>WeatherTrip - Clima Interativo na Rota</title>
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌦️</text></svg>">
-
 
     <!-- SEO Básico -->
     <meta name="description"
@@ -19,7 +18,7 @@
 
     <link rel="canonical" href="https://sites.docanto.net/weathertrip/" />
 
-    <!-- Open Graph / Meta tags Sociais (Facebook, LinkedIn, WhatsApp) -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://sites.docanto.net/weathertrip/">
     <meta property="og:title" content="WeatherTrip - Previsão do Tempo na sua Rota">
@@ -36,67 +35,161 @@
         content="Planeje sua viagem e saiba exatamente como estará o clima em cada trecho do caminho.">
     <meta name="twitter:image" content="https://sites.docanto.net/weathertrip/assets/img/og-image.webp">
 
+    <!-- Fontes Modernas -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
+    <!-- Tailwind PostCSS Autoprefixed Base -->
     <link rel="stylesheet" href="assets/css/style.min.css">
+
+    <style>
+        /* SCSS Fallback & Leaflet overrides (em caso do Tailwind não resetar a altura) */
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
 </head>
 
-<body>
+<body
+    class="bg-gradient-to-br from-indigo-50 via-white to-blue-50 text-slate-800 min-h-screen flex flex-col selection:bg-indigo-200">
 
-    <main>
-        <div class="card">
-            <h1>WeatherTrip</h1>
+    <main class="flex-grow max-w-5xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col md:flex-row gap-8">
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="origin">Sair de:</label>
-                    <input type="text" id="origin" placeholder="Origem..." autocomplete="off"
-                        aria-label="Cidade de origem">
-                    <div id="origin-list" class="autocomplete-list"></div>
+        <!-- Formulário (Esquerda) -->
+        <div class="w-full md:w-[45%] lg:w-[40%] space-y-6">
+            <div
+                class="bg-white/70 backdrop-blur-xl shadow-xl shadow-indigo-100/50 rounded-3xl p-6 md:p-8 border border-white/50 relative overflow-hidden">
+                <!-- Efeito Glass Gradient Interno -->
+                <div
+                    class="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-indigo-500/20 to-teal-400/20 blur-2xl rounded-full pointer-events-none">
                 </div>
 
-                <div class="form-group">
-                    <label for="destination">Ir para:</label>
-                    <input type="text" id="destination" placeholder="Destino..." autocomplete="off"
-                        aria-label="Cidade de destino">
-                    <div id="destination-list" class="autocomplete-list"></div>
+                <div class="flex items-center space-x-3 mb-8">
+                    <span class="text-4xl">🌤️</span>
+                    <div>
+                        <h1
+                            class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-teal-500">
+                            WeatherTrip</h1>
+                        <p class="text-sm text-slate-500 font-medium">Clima inteligente para sua rota</p>
+                    </div>
                 </div>
-            </div>
 
-            <div id="stops-container"></div>
+                <div class="space-y-5 relative z-10">
+                    <div class="relative group">
+                        <label for="origin" class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Sair
+                            de</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-slate-400">📍</span>
+                            <input type="text" id="origin" placeholder="Cidade de origem..." autocomplete="off"
+                                class="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 font-medium text-slate-700">
+                        </div>
+                        <div id="origin-list"
+                            class="autocomplete-list absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 max-h-60 overflow-y-auto hidden">
+                        </div>
+                    </div>
 
-            <div style="margin-bottom: 1.5rem; text-align: center;">
-                <button type="button" class="btn-secondary" onclick="adicionarParada()">+ Adicionar Parada</button>
-            </div>
+                    <div class="relative group">
+                        <label for="destination" class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Ir
+                            para</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3.5 text-indigo-500">🏁</span>
+                            <input type="text" id="destination" placeholder="Cidade de destino..." autocomplete="off"
+                                class="w-full pl-11 pr-4 py-3.5 bg-slate-50/50 border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl outline-none transition-all placeholder:text-slate-400 hover:border-slate-300 font-medium text-slate-700">
+                        </div>
+                        <div id="destination-list"
+                            class="autocomplete-list absolute z-50 w-full mt-2 bg-white rounded-xl shadow-2xl border border-slate-100 max-h-60 overflow-y-auto hidden">
+                        </div>
+                    </div>
 
-            <div class="form-group">
-                <label for="trip-date">Data e Hora da Partida:</label>
-                <input type="datetime-local" id="trip-date" aria-label="Data e hora da partida">
-            </div>
+                    <div id="stops-container" class="space-y-4"></div>
 
-            <button onclick="calcularRota()">Ver Previsão e Mapa</button>
+                    <div class="text-center pt-2">
+                        <button type="button"
+                            class="inline-flex items-center px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 rounded-full transition-colors focus:ring-2 focus:ring-indigo-100 outline-none"
+                            onclick="adicionarParada()">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Adicionar Parada
+                        </button>
+                    </div>
 
-            <div id="map-container">
-                <div id="map"></div>
-                <div id="map-overlay">
-                    <div class="spinner"></div>
+                    <div class="pt-2">
+                        <label for="trip-date"
+                            class="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Partida</label>
+                        <input type="datetime-local" id="trip-date"
+                            class="w-full px-4 py-3.5 bg-slate-50/50 border border-slate-200 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 rounded-2xl outline-none transition-all text-slate-700 hover:border-slate-300 font-medium cursor-pointer">
+                    </div>
+
+                    <button onclick="calcularRota()"
+                        class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-teal-500 hover:from-indigo-500 hover:to-teal-400 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg shadow-indigo-200/50 transform transition-all active:scale-[0.98] outline-none focus:ring-4 focus:ring-indigo-200 flex justify-center items-center">
+                        <svg class="w-5 h-5 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
+                            </path>
+                        </svg>
+                        Calcular e Buscar Clima
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div id="results" class="timeline" aria-live="polite"></div>
+        <!-- Mapa e Resultados (Direita) -->
+        <div class="w-full md:w-[55%] lg:w-[60%] flex flex-col gap-6">
+
+            <!-- Mapa -->
+            <div id="map-container"
+                class="relative w-full h-[350px] md:h-[450px] bg-white rounded-3xl shadow-xl shadow-indigo-100/40 border border-slate-100 overflow-hidden hidden transition-all duration-500">
+                <div id="map" class="w-full h-full z-0"></div>
+                <div id="map-overlay"
+                    class="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col p-6 items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300">
+                    <div class="w-12 h-12 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin">
+                    </div>
+                    <span class="mt-4 text-indigo-800 font-medium">Buscando clima interativo...</span>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div id="results" class="bg-white/50 backdrop-blur-sm rounded-3xl border border-white p-4 sm:p-6"
+                aria-live="polite">
+                <!-- Placeholder Vazio -->
+                <div class="h-full flex flex-col items-center justify-center text-slate-400 py-12 text-center">
+                    <svg class="w-16 h-16 mb-4 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                            d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                    <p class="font-medium text-lg">Onde a viagem vai levar você hoje?</p>
+                    <p class="text-sm mt-1">Preencha origem e destino para ver o tempo real.</p>
+                </div>
+            </div>
+
+        </div>
+
     </main>
 
-    <footer class="app-footer">
-        <p>&copy; 2026 WeatherTrip. <br>
+    <footer
+        class="mt-auto py-8 text-center text-slate-500 text-sm border-t border-slate-200/60 bg-white/30 backdrop-blur-md">
+        <p class="font-medium">&copy; 2026 WeatherTrip</p>
+        <p class="mt-1 space-x-3">
             <a href="https://github.com/viniciusdocanto/weather-route-api" target="_blank"
-                rel="noopener noreferrer">GitHub</a> |
-            <a href="https://docanto.net" target="_blank" rel="noopener noreferrer">Vinicius do Canto</a> |
-            <span id="app-version" style="font-weight: bold; color: #555;">...</span>
+                class="hover:text-indigo-600 transition-colors" rel="noopener noreferrer">GitHub</a>
+            <span>&bull;</span>
+            <a href="https://docanto.net" target="_blank" class="hover:text-teal-600 transition-colors"
+                rel="noopener noreferrer">Vinicius do Canto</a>
+            <span>&bull;</span>
+            <span id="app-version"
+                class="text-slate-400 font-semibold bg-slate-100 px-2 py-0.5 rounded-full text-xs">...</span>
         </p>
     </footer>
 
+    <!-- Leaflet Script -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="assets/js/script.min.js"></script>

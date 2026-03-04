@@ -33,19 +33,40 @@ esbuild.build({
     process.exit(1);
 });
 
-// 2. Build do SCSS
-try {
-    if (!fs.existsSync('src/scss/style.scss')) {
-        console.warn('⚠️ scss não encontrado, ignorando sass build');
-    } else {
-        const result = sass.compile('src/scss/style.scss', { style: 'compressed' });
+// 2. Build do SCSS com Tailwind CSS (PostCSS)
+async function buildCSS() {
+    try {
+        if (!fs.existsSync('src/scss/style.scss')) {
+            console.warn('⚠️ scss não encontrado, ignorando sass build');
+            return;
+        }
+
+        // Primeiro: Compila SCSS Nativo
+        const sassResult = sass.compile('src/scss/style.scss');
+
+        // Segundo: Passa o resultado pelo PostCSS (para Tailwind e Autoprefixer)
+        const postcss = require('postcss');
+        const tailwindcss = require('tailwindcss');
+        const autoprefixer = require('autoprefixer');
+
+        const postcssResult = await postcss([
+            tailwindcss,
+            autoprefixer
+        ]).process(sassResult.css, { from: 'src/scss/style.scss', to: 'assets/css/style.min.css' });
+
         if (!fs.existsSync('assets/css')) fs.mkdirSync('assets/css', { recursive: true });
-        fs.writeFileSync('assets/css/style.min.css', result.css);
-        console.log('✅ Compilação e minificação do SCSS concluída!');
+
+        // Terceiro: Minifica o CSS final usando ESBuild internamente (mais veloz que outro minifyer)
+        const finalMinified = await esbuild.transform(postcssResult.css, { loader: 'css', minify: true });
+
+        fs.writeFileSync('assets/css/style.min.css', finalMinified.code);
+        console.log('✅ Compilação SCSS + Tailwind + Minificação concluída com sucesso!');
+
+    } catch (err) {
+        console.error('❌ Erro no build do SCSS/Tailwind:', err);
     }
-} catch (err) {
-    console.error('❌ Erro no build do SCSS:', err.message);
 }
+buildCSS();
 
 // 3. Otimização de Imagens (Sharp)
 async function optimizeImages() {
