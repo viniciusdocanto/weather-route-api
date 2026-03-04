@@ -19,19 +19,19 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - **SEO & Social Media:** Meta tags otimizadas para Open Graph e Twitter Cards, incluindo correção de caminhos de imagem para melhor compatibilidade de preview.
 - **Performance:** Configuração de cache de longo prazo (TTL eficiente de 1 ano) para ativos estáticos (CSS/JS), melhorando drasticamente a pontuação de velocidade no carregamento de navegadores recorrentes.
 - **Flexibilidade de Hospedagem:** Correção de chamadas de API relativas, permitindo a implantação em subdiretórios perfeitamente integrada.
-
-
-## 🛠️ Tecnologias Utilizadas
+- **Node Build Automático (ESBuild):** Pipeline nativa acoplada para empacotar todo código Javascript do projeto (substituindo process.env do server no frontend), permitindo hospedagens JAMStack sem dores de cabeça.
+- **Otimização de Assets (Scss/Sharp):** Minificação automática de folhas de estilo `.scss` e compressão inteligente em *batch* de imagens via `sharp` para preservar banda do usuário em conexões 3G na estrada.## 🛠️ Tecnologias Utilizadas
 
 **Backend:**
 - Node.js & Express
 - SQLite3 (Banco de dados local para Cache)
 - Axios (Requisições HTTP)
 
-**Frontend:**
-- HTML5, CSS3 & JavaScript Puro (Vanilla)
-
-**APIs Externas (Gratuitas/Open Source):**
+**Frontend & Build Pipeline:**
+- HTML5, SCSS & JavaScript Puro (Vanilla)
+- ESBuild (Bundler e Minificador JS rápido)
+- Sass (Pré-processador de CSS nativo)
+- Sharp (Conversor e Esmagador de imagens node de altíssima velocidade)**APIs Externas (Gratuitas/Open Source):**
 - 🗺️ **Mapbox Geocoding:** Geocodificação (Texto ↔ Coordenadas) (Principal).
 - 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas) (Fallback caso Mapbox falhe).
 - 🛣️ **OSRM / GraphHopper / Mapbox:** Cálculo de rotas e geometria.
@@ -65,11 +65,15 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
    - `MAPBOX_TOKEN`: Seu token de acesso do Mapbox.
    - `API_BASE_URL`: (Opcional) URL base da API se for diferente do padrão `/api`.
 
-4. **Inicie o servidor:**
+6. **Árvore de Desenvolvimento:**
+   - Faça suas edições em `src/js/script.js` e `src/scss/style.scss`.
+   - Coloque as imagens novas em `src/img/`.
+
+7. **Inicie o servidor localmente:**
    ```bash
    npm start
    ```
-   O app estará disponível em `http://localhost:3000`.
+   *O comando iniciará automaticamente o processo do `esbuild`, `sass` e `sharp`, copiando todos os arquivos da pasta origem (`/src`) empacotados e minimizados para a pasta final (`/assets`), a qual o `index.html` irá carregar. O app estará disponível em `http://localhost:3000`.*
 
 ## 📄 Licença
 
