@@ -3,8 +3,9 @@ let map = null;
 let routeLayer = null;
 let markersLayer = null;
 
-// Em ambiente de Build com ESBuild, env variables de deploy.yml/Netlify são injetadas estaticamente aqui
-let API_BASE = process.env.API_BASE_URL;
+// Em ambiente de Build com ESBuild, env variables de deploy.yml são injetadas estaticamente aqui
+// Fallback para a URL de produção caso o secret não seja injetado corretamente
+const API_BASE = process.env.API_BASE_URL || 'https://weather-route-api.onrender.com/api';
 
 
 

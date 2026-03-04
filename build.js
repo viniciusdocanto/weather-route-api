@@ -5,8 +5,8 @@ const sass = require('sass');
 const sharp = require('sharp');
 require('dotenv').config();
 
-// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão de desenvolvimento
-const API_BASE = process.env.API_BASE_URL || '/api';
+// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão de produção
+const API_BASE = process.env.API_BASE_URL || 'https://weather-route-api.onrender.com/api';
 
 // Pega a versão real do package.json para injetar sem precisar de fecth na API
 const APP_VERSION = require('./package.json').version;
