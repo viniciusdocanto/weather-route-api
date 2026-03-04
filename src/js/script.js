@@ -293,8 +293,8 @@ window.calcularRota = async function calcularRota() {
                         </div>
                         
                         <div class="flex flex-col items-end min-w-[100px] p-3 bg-gradient-to-br from-indigo-50 to-blue-50/50 dark:from-indigo-900/30 dark:to-blue-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/50">
-                            <span class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tracking-tight">${item.weather.temp}°C</span>
-                            <span class="text-xs font-semibold text-indigo-500/80 dark:text-indigo-400 uppercase tracking-wide mt-0.5">${item.weather.condition}</span>
+                            <span class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tracking-tight">${item.weather ? item.weather.temp + '°C' : '--'}</span>
+                            <span class="text-xs font-semibold text-indigo-500/80 dark:text-indigo-400 uppercase tracking-wide mt-0.5">${item.weather ? item.weather.condition : 'Sem dados'}</span>
                         </div>
                     </div>
                 </div>`;
