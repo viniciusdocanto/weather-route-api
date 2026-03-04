@@ -8,13 +8,57 @@
     }
 }
 
-/* Opcional: esconder a atribuição do Leaflet para uma interface mais limpa no widget */
+/* =================================================================
+   DARK MODE — Regras com alta especificidade para sobrescrever 
+   as classes utilitárias do Tailwind que têm order-of-cascade maior.
+   Não podem ser purgadas pois estão no SCSS compilado.
+   ================================================================= */
+
+html.dark body {
+    background-image: linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e1b4b 100%) !important;
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark .wt-card {
+    background-color: rgba(30, 41, 59, 0.7) !important;
+    border-color: rgba(51, 65, 85, 0.5) !important;
+}
+
+html.dark nav {
+    background-color: rgba(15, 23, 42, 0.6) !important;
+    border-color: rgba(51, 65, 85, 0.6) !important;
+}
+
+html.dark #results {
+    background-color: rgba(30, 41, 59, 0.5) !important;
+    border-color: rgba(51, 65, 85, 0.6) !important;
+}
+
+html.dark #map-container {
+    background-color: rgb(30, 41, 59) !important;
+    border-color: rgb(51, 65, 85) !important;
+}
+
+html.dark footer {
+    background-color: rgba(15, 23, 42, 0.3) !important;
+    border-color: rgba(51, 65, 85, 0.6) !important;
+}
+
+html.dark input[type="text"],
+html.dark input[type="datetime-local"] {
+    background-color: rgba(51, 65, 85, 0.5) !important;
+    border-color: rgb(71, 85, 105) !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark #theme-toggle {
+    background-color: rgb(30, 41, 59) !important;
+    border-color: rgb(51, 65, 85) !important;
+    color: #cbd5e1 !important;
+}
+
+/* Leaflet */
 .leaflet-control-attribution {
     display: none !important;
 }
-
-/* 
- * Correções estritas caso o tailwind base zere o mapa (Leaflet). 
- * O Leaflet injeta estilos inline baseados nas dimensões reais do contêiner instanciado, 
- * então os w-full h-full do Tailwind na div já resolvem o tamanho.
- */
