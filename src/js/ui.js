@@ -37,7 +37,7 @@ export function setupAutocomplete(inputId, listId) {
                     list.appendChild(item);
                 });
             } else list.classList.add('hidden');
-        }, 500);
+        }, 300);
     });
     document.addEventListener('click', (e) => { if (e.target !== input) list.classList.add('hidden'); });
 }

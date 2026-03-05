@@ -3,10 +3,15 @@ const fs = require('fs');
 const path = require('path');
 const sass = require('sass');
 const sharp = require('sharp');
-require('dotenv').config();
+// Tenta carregar do arquivo local .env (Desenvolvimento)
+if (fs.existsSync(path.join(__dirname, '.env'))) {
+    require('dotenv').config({ path: path.join(__dirname, '.env') });
+} else {
+    require('dotenv').config();
+}
 
-// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão de produção
-const API_BASE = process.env.API_BASE_URL || 'https://weather-route-api.onrender.com/api';
+// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão
+const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000/api';
 
 // Pega a versão real do package.json para injetar sem precisar de fecth na API
 const APP_VERSION = require('./package.json').version;

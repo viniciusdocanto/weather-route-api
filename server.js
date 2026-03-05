@@ -28,7 +28,9 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        // AND explicitly allow localhost for development
+        if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
