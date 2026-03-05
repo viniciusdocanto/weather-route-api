@@ -27,7 +27,6 @@ if (!API_BASE) {
 const APP_VERSION = require('./package.json').version;
 
 console.log('🚧 Iniciando Build do Frontend...');
-console.log(`🔗 Injetando API_BASE: ${API_BASE}`);
 console.log(`🏷️  Injetando APP_VERSION: ${APP_VERSION}`);
 
 // 1. Build do JavaScript
@@ -41,7 +40,7 @@ async function buildJS() {
             minify: true,
             outfile: 'assets/js/script.min.js',
             define: {
-                'process.env.API_BASE_URL': JSON.stringify(API_BASE),
+                // Apenas a versão; API_URL é resolvida em runtime (api.js)
                 'process.env.APP_VERSION': JSON.stringify(APP_VERSION)
             }
         });
