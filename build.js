@@ -10,8 +10,18 @@ if (fs.existsSync(path.join(__dirname, '.env'))) {
     require('dotenv').config();
 }
 
-// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor padrão
-const API_BASE = process.env.API_BASE_URL || 'http://localhost:3000/api';
+// Tentativa 1: Verifica se estamos num servidor de Produção (ex: Render) e tem variáveis de ambiente injetadas no SO central.
+// (Render usa NODE_ENV = 'production' por padrão)
+const isProd = process.env.NODE_ENV === 'production';
+
+// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor correto dependendo do ambiente
+let API_BASE = process.env.API_BASE_URL;
+
+if (!API_BASE) {
+    API_BASE = isProd
+        ? 'https://weather-route-api.onrender.com/api' // Servidor na Nuvem
+        : 'http://localhost:3000/api';                 // Servidor Local Dev
+}
 
 // Pega a versão real do package.json para injetar sem precisar de fecth na API
 const APP_VERSION = require('./package.json').version;
