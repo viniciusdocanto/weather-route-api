@@ -15,8 +15,14 @@ export function initMap() {
 export function updateMapRoute(routeGeoJSON, isFirstSearch) {
     if (routeLayer) map.removeLayer(routeLayer);
 
-    routeLayer = L.geoJSON(routeGeoJSON, {
-        style: { color: '#1a73e8', weight: 5, opacity: 0.8 }
+    routeLayer = L.geoJSON({
+        type: "Feature",
+        geometry: {
+            type: "LineString",
+            coordinates: routeGeoJSON
+        }
+    }, {
+        style: { color: '#6366f1', weight: 6, opacity: 0.8 }
     }).addTo(map);
 
     map.invalidateSize();
