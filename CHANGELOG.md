@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-03-09
+
+### Added
+- **Dependency Injection (DI)**: Refactored `RouteWeatherOrchestrator` and all services to support DI, improving testability and decoupling.
+- **Professional Logging**: Integrated `winston` for structured logging (Console, File).
+- **In-Memory Mocking**: Added `tests/orchestrator-di.test.js` using mocks for unit testing.
+
+### Changed
+- Refactored all services from singleton exports to class exports.
+- Centralized service instantiation in `routes/api.js`.
+
 ## [1.5.0] - 2026-03-09
 
 ### Added

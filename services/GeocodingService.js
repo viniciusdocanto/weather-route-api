@@ -9,6 +9,8 @@ const BRAZIL_STATES = {
     "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO"
 };
 
+const logger = require('../config/logger');
+
 class GeocodingService {
     constructor() {
         this.MAPBOX_TOKEN = process.env.MAPBOX_TOKEN;
@@ -16,7 +18,7 @@ class GeocodingService {
 
     async getCoordinates(query) {
         try {
-            console.log(`🔎 Buscando coordenadas para: "${query}"`);
+            logger.info(`Buscando coordenadas`, { query });
             const cleanQuery = query.replace(/ - /g, ', ');
 
             if (this.MAPBOX_TOKEN) {
@@ -26,25 +28,25 @@ class GeocodingService {
 
                     if (res.data && res.data.features && res.data.features.length > 0) {
                         const feature = res.data.features[0];
-                        console.log(`✅ Mapbox encontrou: ${feature.place_name.slice(0, 30)}...`);
+                        logger.debug(`Mapbox encontrou localidade`, { place: feature.place_name });
                         return { lat: feature.center[1], lng: feature.center[0] };
                     }
                 } catch (e) {
-                    console.warn(`⚠️ Mapbox falhou (${e.message}). Tentando Nominatim como fallback...`);
+                    logger.warn(`Mapbox falhou, tentando Nominatim fallback`, { error: e.message });
                 }
             }
 
-            console.log(`🔄 Tentando Nominatim para: "${cleanQuery}"`);
+            logger.info(`Tentando Nominatim`, { query: cleanQuery });
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanQuery)}&limit=1&countrycodes=br`;
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
 
             if (res.data && res.data[0]) {
-                console.log(`✅ Nominatim encontrou: ${res.data[0].display_name.slice(0, 30)}...`);
+                logger.debug(`Nominatim encontrou localidade`, { display_name: res.data[0].display_name });
                 return { lat: parseFloat(res.data[0].lat), lng: parseFloat(res.data[0].lon) };
             }
             return null;
         } catch (e) {
-            console.error(`🔥 Erro ao buscar coordenadas: ${e.message}`);
+            logger.error(`Erro ao buscar coordenadas`, { error: e.message, query });
             return null;
         }
     }
@@ -69,7 +71,7 @@ class GeocodingService {
                     return uf ? `${city}, ${uf}` : city;
                 }
             } catch (error) {
-                console.warn(`⚠️ Mapbox reverse falhou (${error.message}). Tentando Nominatim fallback...`);
+                logger.warn(`Mapbox reverse falhou, tentando Nominatim fallback`, { error: error.message, lat, lng });
             }
         }
 
@@ -110,7 +112,7 @@ class GeocodingService {
                     });
                 }
             } catch (e) {
-                console.warn(`⚠️ Mapbox Search falhou (${e.message}). Tentando Nominatim...`);
+                logger.warn(`Mapbox Search falhou, tentando Nominatim`, { error: e.message, query });
             }
         }
 
@@ -119,10 +121,10 @@ class GeocodingService {
             const res = await axios.get(url, { headers: { 'User-Agent': 'WeatherTripApp/1.0' }, timeout: 5000 });
             return res.data || [];
         } catch (e) {
-            console.error(`🔥 Erro final no Search: ${e.message}`);
+            logger.error(`Erro final no Search Address`, { error: e.message, query });
             return [];
         }
     }
 }
 
-module.exports = new GeocodingService();
+module.exports = GeocodingService;

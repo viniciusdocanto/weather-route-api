@@ -1,0 +1,41 @@
+{"level":"info","message":"Iniciando cálculo de rota com previsão","metadata":{"destination":"RJ","origin":"SP","stops":0},"timestamp":"2026-03-09 15:14:33"}
+{"level":"info","message":"Cálculo de rota finalizado com sucesso","metadata":{"provider":"MockProvider"},"timestamp":"2026-03-09 15:14:33"}
+{"level":"info","message":"Iniciando cálculo de rota com previsão","metadata":{"destination":"Cabo Frio - RJ","origin":"Porto Alegre - RS","stops":2},"timestamp":"2026-03-09 15:18:03"}
+{"level":"info","message":"Buscando coordenadas","metadata":{"query":"Porto Alegre - RS"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"debug","message":"Mapbox encontrou localidade","metadata":{"place":"Porto Alegre, Rio Grande do Sul, Brazil"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"info","message":"Buscando coordenadas","metadata":{"query":"Florianópolis - SC"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"debug","message":"Mapbox encontrou localidade","metadata":{"place":"Florianópolis, Santa Catarina, Brazil"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"info","message":"Buscando coordenadas","metadata":{"query":"São Paulo - SP"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"debug","message":"Mapbox encontrou localidade","metadata":{"place":"São Paulo, São Paulo, Brazil"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"info","message":"Buscando coordenadas","metadata":{"query":"Cabo Frio - RJ"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"debug","message":"Mapbox encontrou localidade","metadata":{"place":"Cabo Frio, Rio de Janeiro, Brazil"},"timestamp":"2026-03-09 15:18:03"}
+{"level":"info","message":"Tentando OSRM...","metadata":{},"timestamp":"2026-03-09 15:18:03"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":15,"lat":-30.031567,"lng":-51.227745},"timestamp":"2026-03-09 15:18:04"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":16,"lat":-29.661383,"lng":-50.132119},"timestamp":"2026-03-09 15:18:05"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":17,"lat":-29.149108,"lng":-49.72505},"timestamp":"2026-03-09 15:18:05"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":18,"lat":-28.527049,"lng":-49.056173},"timestamp":"2026-03-09 15:18:06"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":19,"lat":-28.010881,"lng":-48.694587},"timestamp":"2026-03-09 15:18:06"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":20,"lat":-27.538448,"lng":-48.624503},"timestamp":"2026-03-09 15:18:06"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":21,"lat":-26.932743,"lng":-48.702512},"timestamp":"2026-03-09 15:18:07"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":22,"lat":-26.379252,"lng":-48.85154},"timestamp":"2026-03-09 15:18:07"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":23,"lat":-25.861032,"lng":-48.936903},"timestamp":"2026-03-09 15:18:08"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":0,"lat":-25.586415,"lng":-49.173358},"timestamp":"2026-03-09 15:18:08"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":1,"lat":-25.107697,"lng":-48.789035},"timestamp":"2026-03-09 15:18:09"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":2,"lat":-24.849213,"lng":-48.210135},"timestamp":"2026-03-09 15:18:09"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":3,"lat":-24.375225,"lng":-47.70769},"timestamp":"2026-03-09 15:18:09"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":4,"lat":-24.051575,"lng":-47.206231},"timestamp":"2026-03-09 15:18:10"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":5,"lat":-23.635225,"lng":-46.828875},"timestamp":"2026-03-09 15:18:10"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":6,"lat":-23.409712,"lng":-46.343414},"timestamp":"2026-03-09 15:18:11"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":7,"lat":-22.845611,"lng":-45.226291},"timestamp":"2026-03-09 15:18:11"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":8,"lat":-22.491371,"lng":-44.562092},"timestamp":"2026-03-09 15:18:11"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":9,"lat":-22.585523,"lng":-44.008615},"timestamp":"2026-03-09 15:18:12"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":10,"lat":-22.700231,"lng":-43.751286},"timestamp":"2026-03-09 15:18:12"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":11,"lat":-22.871652,"lng":-43.150287},"timestamp":"2026-03-09 15:18:12"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":12,"lat":-22.713408,"lng":-42.61962},"timestamp":"2026-03-09 15:18:13"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":13,"lat":-22.831116,"lng":-42.091616},"timestamp":"2026-03-09 15:18:13"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-10","hour":13,"lat":-22.879698,"lng":-42.018764},"timestamp":"2026-03-09 15:18:13"}
+{"level":"info","message":"Cálculo de rota finalizado com sucesso","metadata":{"provider":"OSRM"},"timestamp":"2026-03-09 15:18:14"}
+{"level":"debug","message":"Rota salva no cache","metadata":{"routeKey":"-30.0316,-51.2277|-27.5968,-48.5498|-23.5521,-46.6472|-22.8797,-42.0188"},"timestamp":"2026-03-09 15:18:14"}
+{"level":"debug","message":"Buscando clima","metadata":{"date":"2026-03-09","hour":15,"lat":-23.5505,"lng":-46.6333},"timestamp":"2026-03-09 15:20:04"}
+{"level":"info","message":"Iniciando cálculo de rota com previsão","metadata":{"destination":"RJ","origin":"SP","stops":0},"timestamp":"2026-03-09 15:20:07"}
+{"level":"info","message":"Cálculo de rota finalizado com sucesso","metadata":{"provider":"MockProvider"},"timestamp":"2026-03-09 15:20:07"}

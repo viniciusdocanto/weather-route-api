@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../config/logger');
 
 class RoutingProviderService {
     constructor() {
@@ -8,24 +9,24 @@ class RoutingProviderService {
 
     async getRouteWithFallback(points) {
         try {
-            console.log("🔄 Tentando OSRM...");
+            logger.info("Tentando OSRM...");
             return await this._getOSRMRoute(points);
         } catch (e) {
-            console.warn("⚠️ OSRM falhou. Tentando GraphHopper...");
+            logger.warn("OSRM falhou, tentando GraphHopper", { error: e.message });
         }
 
         try {
             if (!this.GRAPHHOPPER_KEY) throw new Error("Chave GraphHopper ausente");
             return await this._getGraphHopperRoute(points);
         } catch (e) {
-            console.warn(`⚠️ GraphHopper falhou (${e.message}). Tentando Mapbox...`);
+            logger.warn("GraphHopper falhou, tentando Mapbox", { error: e.message });
         }
 
         try {
             if (!this.MAPBOX_TOKEN) throw new Error("Token Mapbox ausente");
             return await this._getMapboxRoute(points);
         } catch (e) {
-            console.error("❌ Todos os provedores de rota falharam.");
+            logger.error("Todos os provedores de rota falharam", { error: e.message });
             throw new Error("Serviços de mapas indisponíveis. Tente novamente mais tarde.");
         }
     }
@@ -70,4 +71,4 @@ class RoutingProviderService {
     }
 }
 
-module.exports = new RoutingProviderService();
+module.exports = RoutingProviderService;

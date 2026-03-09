@@ -1,4 +1,5 @@
 const axios = require('axios');
+const logger = require('../config/logger');
 
 class WeatherService {
     async getWeather(lat, lng, date) {
@@ -6,13 +7,15 @@ class WeatherService {
         const hour = date.getHours();
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=temperature_2m,weathercode&start_date=${isoDate}&end_date=${isoDate}&timezone=auto`;
         try {
-            const res = await axios.get(url);
+            logger.debug(`Buscando clima`, { lat, lng, date: isoDate, hour });
+            const res = await axios.get(url, { timeout: 5000 });
             const data = res.data.hourly;
             return {
                 temp: data.temperature_2m[hour],
                 condition: this.translateWMO(data.weathercode[hour])
             };
         } catch (e) {
+            logger.error(`Erro ao buscar clima`, { error: e.message, lat, lng });
             return { temp: "--", condition: "Dados indisponíveis" };
         }
     }
@@ -28,4 +31,4 @@ class WeatherService {
     }
 }
 
-module.exports = new WeatherService();
+module.exports = WeatherService;

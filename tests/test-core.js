@@ -6,7 +6,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 // Mock simples para o CacheRepository (para não depender do SQLite nos testes unitários)
-const weatherService = require('../services/WeatherService');
+const WeatherService = require('../services/WeatherService');
+const weatherService = new WeatherService();
 
 test('WeatherService - Tradução de Códigos WMO', (t) => {
     const condition = weatherService.translateWMO(0);

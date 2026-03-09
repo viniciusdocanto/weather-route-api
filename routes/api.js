@@ -2,7 +2,22 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const service = require('../services/weatherRouteService');
+const logger = require('../config/logger');
+
+// Importação das Classes de Serviço
+const CacheRepository = require('../services/CacheRepository');
+const GeocodingService = require('../services/GeocodingService');
+const RoutingProviderService = require('../services/RoutingProviderService');
+const WeatherService = require('../services/WeatherService');
+const RouteWeatherOrchestrator = require('../services/weatherRouteService');
+
+// Injeção de Dependências
+const cacheRepo = new CacheRepository();
+const geocoding = new GeocodingService();
+const routing = new RoutingProviderService();
+const weather = new WeatherService();
+const orchestrator = new RouteWeatherOrchestrator(cacheRepo, geocoding, routing, weather);
+
 router.post('/forecast', async (req, res) => {
     try {
         const { origin, destination, stops, date } = req.body;
@@ -28,10 +43,10 @@ router.post('/forecast', async (req, res) => {
             return res.status(400).json({ error: "Data fornecida é inválida." });
         }
 
-        const data = await service.getRouteForecast(origin, destination, stops || [], date);
+        const data = await orchestrator.getRouteForecast(origin, destination, stops || [], date);
         res.json(data);
     } catch (error) {
-        console.error("ERRO CRÍTICO:", error.message);
+        logger.error("Erro na rota /forecast", { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -40,10 +55,10 @@ router.get('/search', async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) return res.json([]);
-        const data = await service.searchAddress(q);
+        const data = await orchestrator.searchAddress(q);
         res.json(data);
     } catch (error) {
-        console.error("ERRO SEARCH:", error.message);
+        logger.error("Erro na rota /search", { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -51,13 +66,13 @@ router.get('/search', async (req, res) => {
 router.get('/version', (req, res) => {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
-        // Pega a URL base da API do .env ou usa o padrão relativo
         const apiBaseUrl = process.env.API_BASE_URL || '/api';
         res.json({
             version: pkg.version,
             apiBaseUrl: apiBaseUrl
         });
     } catch (error) {
+        logger.error("Erro na rota /version", { error: error.message });
         res.status(500).json({ error: "Erro ao ler versão" });
     }
 });
