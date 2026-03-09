@@ -29,10 +29,6 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - SQLite3 (Banco de dados local para Cache)
 - Axios (Requisições HTTP)
 - Helmet & CORS (Segurança de API e Cabeçalhos HTTP)
-- Node.js & Express
-- SQLite3 (Banco de dados local para Cache)
-- Axios (Requisições HTTP)
-- Helmet & CORS (Segurança de API e Cabeçalhos HTTP)
 - **Arquitetura Modular de Serviços**:
     - `CacheRepository`: Isolamento de persistência SQLite.
     - `GeocodingService`: Integração Mapbox/Nominatim.
@@ -89,6 +85,20 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
    npm start
    ```
    *O comando iniciará automaticamente o processo do `esbuild`, `sass` e `sharp`, copiando todos os arquivos da pasta origem (`/src`) empacotados e minimizados para a pasta final (`/assets`), a qual o `index.html` irá carregar. O app estará disponível em `http://localhost:3000`.*
+
+---
+
+## 🧪 Testes
+
+O projeto utiliza o **Node.js Native Test Runner** para garantir a integridade dos serviços modulares.
+
+### Como rodar os testes:
+```bash
+node tests/test-core.js
+```
+Os testes cobrem:
+- Validação de tradução de códigos WMO (Meteorologia).
+- Integridade da estrutura de resposta da API de clima.
 
 ## 📄 Licença
 
