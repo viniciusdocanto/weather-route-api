@@ -78,3 +78,43 @@ export function bindStopsUI() {
         }
     };
 }
+export function renderCheckpoint(item, index, total) {
+    const isStart = index === 0;
+    const isEnd = index === total - 1;
+    const isIntermediateStop = !isStart && !isEnd && item.isStopNode;
+
+    let kmText = (item.distanceFromStart === 0) ? `Km 0` : `Km ${item.distanceFromStart || '--'}`;
+
+    let statusLabel = '';
+    if (isStart) {
+        statusLabel = '<span class="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">📍 Partida</span>';
+    } else if (isEnd) {
+        statusLabel = '<span class="text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">🏁 Chegada</span>';
+    } else if (isIntermediateStop) {
+        statusLabel = '<span class="text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mb-1 inline-block">📌 Parada</span>';
+    }
+
+    const borderClass = isIntermediateStop ? 'border-teal-400' : 'border-indigo-200';
+    const dotClass = isIntermediateStop ? 'bg-teal-400 ring-4 ring-teal-50' : 'bg-indigo-400 ring-4 ring-indigo-50';
+
+    return `
+        <div class="relative pl-6 pb-8 border-l-2 ${borderClass} last:border-0 last:pb-0 group">
+            <div class="absolute left-[-9px] top-1 w-4 h-4 rounded-full ${dotClass} shadow-sm transition-transform group-hover:scale-125"></div>
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/60 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm transition-all hover:shadow-md">
+                <div class="flex-1">
+                    ${statusLabel}
+                    <h3 class="text-slate-800 dark:text-slate-100 font-bold text-lg">${item.locationName}</h3>
+                    <div class="flex items-center text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 gap-3">
+                        <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>${item.formattedTime}</span>
+                        <span class="flex items-center"><svg class="w-4 h-4 mr-1 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>🚗 ${kmText}</span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end min-w-[100px] p-3 bg-gradient-to-br from-indigo-50 to-blue-50/50 dark:from-indigo-900/30 dark:to-blue-900/20 rounded-xl border border-indigo-100/50 dark:border-indigo-800/50">
+                    <span class="text-2xl font-bold text-indigo-700 dark:text-indigo-300 tracking-tight">${item.weather ? item.weather.temp + '°C' : '--'}</span>
+                    <span class="text-xs font-semibold text-indigo-500/80 dark:text-indigo-400 uppercase tracking-wide mt-0.5">${item.weather ? item.weather.condition : 'Sem dados'}</span>
+                </div>
+            </div>
+        </div>`;
+}

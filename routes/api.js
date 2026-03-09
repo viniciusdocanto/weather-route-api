@@ -3,18 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const service = require('../services/weatherRouteService');
-const rateLimit = require('express-rate-limit');
-
-// --- CONFIGURAÇÃO DE RATE LIMIT (SEGURANÇA) ---
-const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 15, // Limite de 15 requisições por IP por janela
-    message: { error: "Muitas requisições vindas deste IP. Tente novamente em 15 minutos." },
-    standardHeaders: true, // Retorna info de limite no header `RateLimit-*`
-    legacyHeaders: false, // Desativa os headers `X-RateLimit-*`
-});
-
-router.post('/forecast', apiLimiter, async (req, res) => {
+router.post('/forecast', async (req, res) => {
     try {
         const { origin, destination, stops, date } = req.body;
 
@@ -47,7 +36,7 @@ router.post('/forecast', apiLimiter, async (req, res) => {
     }
 });
 
-router.get('/search', apiLimiter, async (req, res) => {
+router.get('/search', async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) return res.json([]);

@@ -4,6 +4,8 @@ const helmet = require('helmet');
 const fs = require('fs');
 const path = require('path');
 
+const rateLimit = require('express-rate-limit');
+
 // --- 1. CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE ---
 // Tenta carregar do caminho de segredos do Render (Produção)
 if (fs.existsSync('/etc/secrets/.env')) {
@@ -16,6 +18,16 @@ if (fs.existsSync('/etc/secrets/.env')) {
 }
 
 const app = express();
+
+// --- 2. SEGURANÇA GLOBAL (Rate Limit) ---
+const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Limite de 100 requisições por IP globalmente
+    message: { error: "Muitas requisições vindas deste IP. Tente novamente mais tarde." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(globalLimiter);
 
 app.use(helmet({
     contentSecurityPolicy: false, // Desabilitado para não bloquear o Leaflet/Mapbox Tiles

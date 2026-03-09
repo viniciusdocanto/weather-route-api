@@ -29,7 +29,16 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - SQLite3 (Banco de dados local para Cache)
 - Axios (Requisições HTTP)
 - Helmet & CORS (Segurança de API e Cabeçalhos HTTP)
-- Arquitetura MVC Modular (Rotas, Serviços e Configurações separadas)
+- Node.js & Express
+- SQLite3 (Banco de dados local para Cache)
+- Axios (Requisições HTTP)
+- Helmet & CORS (Segurança de API e Cabeçalhos HTTP)
+- **Arquitetura Modular de Serviços**:
+    - `CacheRepository`: Isolamento de persistência SQLite.
+    - `GeocodingService`: Integração Mapbox/Nominatim.
+    - `WeatherService`: Previsão via Open-Meteo.
+    - `RoutingProviderService`: Orquestração de OSRM/GraphHopper/Mapbox.
+    - `WeatherRouteOrchestrator`: Fluxo principal de negócio.
 
 **Frontend & Build Pipeline:**
 - HTML5, SCSS & JavaScript Puro (ES6 Modules: api.js, map.js, ui.js)
@@ -84,3 +93,8 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 ## 📄 Licença
 
 Este projeto está sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+> [!WARNING]
+> **Persistência de Dados (SQLite):** Este projeto utiliza SQLite (`weather_trip.db`). Em plataformas como Render.com, o sistema de arquivos é efêmero. Se você precisar de persistência real entre deploys, considere utilizar um **Persistent Disk** ou migrar para um banco de dados gerenciado (Postgres/MySQL).

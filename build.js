@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const sass = require('sass');
 const sharp = require('sharp');
+const chokidar = require('chokidar');
 // Tenta carregar do arquivo local .env (Desenvolvimento)
 if (fs.existsSync(path.join(__dirname, '.env'))) {
     require('dotenv').config({ path: path.join(__dirname, '.env') });
@@ -23,11 +24,28 @@ if (!API_BASE) {
         : 'http://localhost:3000/api';                 // Servidor Local Dev
 }
 
-// Pega a versão real do package.json para injetar sem precisar de fecth na API
+// Pela a versão real do package.json para injetar sem precisar de fecth na API
 const APP_VERSION = require('./package.json').version;
 
 console.log('🚧 Iniciando Build do Frontend...');
 console.log(`🏷️  Injetando APP_VERSION: ${APP_VERSION}`);
+
+// 0. Automação de Cache Busting (Injeta versão no index.html)
+function injectVersion() {
+    try {
+        const filePath = path.join(__dirname, 'index.html');
+        let content = fs.readFileSync(filePath, 'utf8');
+
+        // Atualiza query string de versão para CSS e JS
+        content = content.replace(/style\.min\.css\?v=[\w.-]+/g, `style.min.css?v=${APP_VERSION}`);
+        content = content.replace(/script\.min\.js\?v=[\w.-]+/g, `script.min.js?v=${APP_VERSION}`);
+
+        fs.writeFileSync(filePath, content);
+        console.log(`✅ Versionamento (v${APP_VERSION}) injetado no index.html`);
+    } catch (err) {
+        console.error('❌ Erro ao injetar versão no HTML:', err);
+    }
+}
 
 // 1. Build do JavaScript
 const isWatchMode = process.argv.includes('--watch');
@@ -53,6 +71,7 @@ async function buildJS() {
             await ctx.dispose();
             console.log('✅ Build do Javascript concluído com sucesso!');
         }
+        injectVersion();
     } catch (err) {
         console.error('❌ Erro no build do JS:', err);
         if (!isWatchMode) process.exit(1);
@@ -85,6 +104,7 @@ async function buildCSS() {
 
         fs.writeFileSync('assets/css/style.min.css', finalMinified.code);
         console.log('✅ Compilação SCSS + Tailwind + Minificação concluída...');
+        injectVersion();
 
     } catch (err) {
         console.error('❌ Erro no build do SCSS/Tailwind:', err);
@@ -93,17 +113,16 @@ async function buildCSS() {
 buildCSS();
 
 if (isWatchMode) {
-    console.log('👀 Observando mudanças nos arquivos SCSS e Tailwind...');
-    // Observa Tailwind config e arquivos HTML também, pois afetam o CSS gerado
-    const watchPaths = ['src/scss', 'index.html', 'tailwind.config.js'];
-    watchPaths.forEach(watchPath => {
-        if (fs.existsSync(watchPath)) {
-            fs.watch(watchPath, { recursive: true }, (eventType, filename) => {
-                if (filename && (filename.endsWith('.scss') || filename.endsWith('.html') || filename.endsWith('.js'))) {
-                    console.log(`🔄 Arquivo modificado: ${filename}. Recompilando CSS...`);
-                    buildCSS();
-                }
-            });
+    console.log('👀 Observando mudanças nos arquivos (Chokidar)...');
+    const watcher = chokidar.watch(['src/scss/**/*', 'index.html', 'tailwind.config.js'], {
+        persistent: true,
+        ignoreInitial: true
+    });
+
+    watcher.on('all', (event, filename) => {
+        if (filename && (filename.endsWith('.scss') || filename.endsWith('.html') || filename.endsWith('.js'))) {
+            console.log(`🔄 Arquivo modificado (${event}): ${filename}. Recompilando CSS...`);
+            buildCSS();
         }
     });
 }

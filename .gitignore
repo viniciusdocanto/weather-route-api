@@ -19,6 +19,8 @@ pnpm-debug.log*
 ehthumbs.db
 Thumbs.db
 .agent/
+.agents/
+skills-lock.json
 
 # Arquivos de Variáveis de Ambiente (Segurança futura)
 .env
@@ -43,3 +45,5 @@ assets/js/script.min.js
 assets/css/
 assets/img/
 assets/js/
+test-results/
+.sqlite-journal
