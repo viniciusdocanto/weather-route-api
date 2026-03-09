@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.1] - 2026-03-09
+
+### Fixed
+- **Build System**: Downgraded `chokidar` to `v3` to fix CommonJS/ESM compatibility issue (`ERR_REQUIRE_ESM`) in `build.js`.
+
 ## [1.6.0] - 2026-03-09
 
 ### Added
