@@ -63,7 +63,7 @@ class RouteWeatherOrchestrator {
     }
 
     async _processCheckpoints(routeData, departureTime, userPoints = []) {
-        const checkpoints = [];
+        const checkpointsInfo = [];
         let timeOffset = 0;
         const totalDuration = routeData.duration || 0;
         const totalDistance = routeData.distance || 0;
@@ -80,21 +80,32 @@ class RouteWeatherOrchestrator {
             if (!point) break;
             const [lng, lat] = point;
 
-            const weather = await this.weatherService.getWeather(lat, lng, futureDate);
-            const cityName = await this.geocodingService.getCityName(lat, lng);
-
-            checkpoints.push({
-                formattedTime: futureDate.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
-                lat, lng,
-                locationName: cityName,
-                distanceFromStart: Math.floor((totalDistance * progress) / 1000),
-                weather: weather,
-                isStopNode: false
-            });
+            checkpointsInfo.push({ lat, lng, date: futureDate, progress });
 
             if (timeOffset >= totalDuration) break;
             timeOffset += this.CHECKPOINT_INTERVAL;
             if (timeOffset > totalDuration) timeOffset = totalDuration;
+        }
+
+        // Busca clima em lote para todos os checkpoints
+        const weatherData = await this.weatherService.getBatchWeather(checkpointsInfo);
+
+        const checkpoints = [];
+        for (let i = 0; i < checkpointsInfo.length; i++) {
+            const info = checkpointsInfo[i];
+            const weather = weatherData[i];
+            
+            // Geocodificação reversa continua sendo individual (com o delay interno)
+            const cityName = await this.geocodingService.getCityName(info.lat, info.lng);
+
+            checkpoints.push({
+                formattedTime: info.date.toLocaleTimeString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                lat: info.lat, lng: info.lng,
+                locationName: cityName,
+                distanceFromStart: Math.floor((totalDistance * info.progress) / 1000),
+                weather: weather,
+                isStopNode: false
+            });
         }
 
         // Marcar pontos exatos do usuário (Partida, Paradas, Chegada)

@@ -34,6 +34,9 @@ class MockWeather {
     async getWeather() {
         return { temp: 25, condition: "Sol" };
     }
+    async getBatchWeather(points) {
+        return points.map(() => ({ temp: 25, condition: "Sol" }));
+    }
 }
 
 test('Orchestrator - Fluxo completo com Mocks (DI)', async (t) => {

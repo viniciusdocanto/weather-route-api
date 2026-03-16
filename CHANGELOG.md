@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2] - 2026-03-16
+
+### Fixed
+- **API**: Implemented dynamic backend URL resolution in frontend to support various production domains and subdirectories.
+- **Weather Service**: Resolved "429 Too Many Requests" by implementing batch request support for Open-Meteo.
+- **Map**: Fixed "403 Forbidden" errors on map tiles by switching from OSM volunteer servers to CartoDB Voyager.
+- **UI**: Added better feedback and visual indicators for missing or unavailable weather data.
+
 ## [1.6.1] - 2026-03-09
 
 ### Fixed

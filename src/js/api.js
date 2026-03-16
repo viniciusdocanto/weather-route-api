@@ -1,8 +1,8 @@
-// A API é resolvida dinamicamente no frontend ao invés de fixada no build
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-export const API_BASE = isLocalhost
-    ? 'http://localhost:3000/api'
-    : 'https://weather-route-api.onrender.com/api';
+// Em produção, usa a URL do ambiente injetada no build ou resolve relativo ao origin atual
+export const API_BASE = (typeof process !== 'undefined' && process.env.API_BASE_URL) 
+    ? process.env.API_BASE_URL 
+    : (isLocalhost ? 'http://localhost:3000/api' : `${window.location.origin}/api`);
 
 const searchCache = new Map();
 
