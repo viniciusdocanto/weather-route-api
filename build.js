@@ -58,8 +58,9 @@ async function buildJS() {
             minify: true,
             outfile: 'assets/js/script.min.js',
             define: {
-                // Apenas a versão; API_URL é resolvida em runtime (api.js)
-                'process.env.APP_VERSION': JSON.stringify(APP_VERSION)
+                // Versão e URL da API injetadas no build
+                'process.env.APP_VERSION': JSON.stringify(APP_VERSION),
+                'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || null)
             }
         });
 
