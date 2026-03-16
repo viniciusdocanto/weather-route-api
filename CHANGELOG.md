@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.7] - 2026-03-16
+
+### Fixed
+- **Weather Service**: Added robust logging and a retry mechanism for Open-Meteo requests to diagnose and mitigate production connection issues.
+
 ## [1.6.6] - 2026-03-16
 
 ### Fixed
