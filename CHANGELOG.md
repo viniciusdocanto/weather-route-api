@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.8] - 2026-03-16
+
+### Fixed
+- **API**: Resolved `ReferenceError: process is not defined` in browser environment.
+- **Weather Service**: Implemented `WeatherAPI.com` fallback and increased cache TTL to 24h to mitigate production rate limits.
+- **UI**: Maintained 1h weather precision as requested.
+
 ## [1.6.7] - 2026-03-16
 
 ### Fixed

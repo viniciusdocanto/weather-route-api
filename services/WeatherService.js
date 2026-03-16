@@ -67,8 +67,22 @@ class WeatherService {
                     });
 
                     if (attempts >= maxAttempts) {
+                        const detail = status === 429 ? "Limite excedido" : "Erro de conexão";
+                        
+                        // Tentativa de Fallback para WeatherAPI se tivermos a Key e for erro de limit
+                        const weatherApiKey = process.env.WEATHER_API_KEY;
+                        if (status === 429 && weatherApiKey) {
+                            logger.warn("Limite do Open-Meteo excedido. Tentando fallback para WeatherAPI...");
+                            try {
+                                await this._fetchFromWeatherAPI(groupPoints, finalResults, weatherApiKey);
+                                success = true;
+                                continue; // Vai para o próximo grupo (mas este já deu sucesso)
+                            } catch (fallbackError) {
+                                logger.error("Fallback para WeatherAPI também falhou", { error: fallbackError.message });
+                            }
+                        }
+
                         groupPoints.forEach(gp => {
-                            const detail = status === 429 ? "Limite excedido" : "Erro de conexão";
                             finalResults[gp.originalIdx] = { temp: "--", condition: detail };
                         });
                     } else {
@@ -80,6 +94,27 @@ class WeatherService {
         }
 
         return finalResults;
+    }
+
+    async _fetchFromWeatherAPI(points, results, apiKey) {
+        for (const p of points) {
+            const isoDate = p.date.toISOString().split('T')[0];
+            const url = `https://api.weatherapi.com/v1/history.json?key=${apiKey}&q=${p.lat},${p.lng}&dt=${isoDate}`;
+            
+            try {
+                const res = await axios.get(url, { timeout: 10000 });
+                const hourIdx = p.date.getHours();
+                const dayData = res.data.forecast.forecastday[0].hour[hourIdx];
+
+                results[p.originalIdx] = {
+                    temp: dayData.temp_c,
+                    condition: dayData.condition.text
+                };
+            } catch (e) {
+                logger.error("Erro individual no fallback WeatherAPI", { lat: p.lat, error: e.message });
+                throw e; // Propaga para o loop principal decidir o que fazer
+            }
+        }
     }
 
     translateWMO(code) {
