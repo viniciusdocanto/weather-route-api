@@ -1,18 +1,6 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-// Detecta o path base atual (ex: /weathertrip/) para lidar com deploys em subpastas
-const getBasePath = () => {
-    const path = window.location.pathname;
-    if (path.match(/\.(html|php)$/)) {
-        return path.substring(0, path.lastIndexOf('/') + 1);
-    }
-    return path.endsWith('/') ? path : path + '/';
-};
-
-// Em produção, usa a URL do ambiente ou resolve relativo ao path atual (suporta subpastas)
-export const API_BASE = (typeof process !== 'undefined' && process.env.API_BASE_URL) 
-    ? process.env.API_BASE_URL 
-    : (isLocalhost ? 'http://localhost:3000/api' : `${window.location.origin}${getBasePath()}api`);
+// Em produção, a URL é injetada estaticamente pelo esbuild (build.js) vinda do .env
+export const API_BASE = process.env.API_BASE_URL || (isLocalhost ? 'http://localhost:3000/api' : '');
 
 const searchCache = new Map();
 

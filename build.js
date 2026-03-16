@@ -15,13 +15,11 @@ if (fs.existsSync(path.join(__dirname, '.env'))) {
 // (Render usa NODE_ENV = 'production' por padrão)
 const isProd = process.env.NODE_ENV === 'production';
 
-// Se API_BASE_URL nao for carregado do .env/Secret, forçamos o valor correto dependendo do ambiente
+// Se API_BASE_URL nao for definido no .env, usamos fallbacks neutros
 let API_BASE = process.env.API_BASE_URL;
 
 if (!API_BASE) {
-    API_BASE = isProd
-        ? 'https://weather-route-api.onrender.com/api' // Servidor na Nuvem
-        : 'http://localhost:3000/api';                 // Servidor Local Dev
+    API_BASE = isProd ? '/api' : 'http://localhost:3000/api';
 }
 
 // Pela a versão real do package.json para injetar sem precisar de fecth na API
@@ -60,7 +58,7 @@ async function buildJS() {
             define: {
                 // Versão e URL da API injetadas no build
                 'process.env.APP_VERSION': JSON.stringify(APP_VERSION),
-                'process.env.API_BASE_URL': JSON.stringify(process.env.API_BASE_URL || null)
+                'process.env.API_BASE_URL': JSON.stringify(API_BASE)
             }
         });
 
