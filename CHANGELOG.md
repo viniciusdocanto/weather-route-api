@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.6] - 2026-03-16
+
+### Fixed
+- **API**: Resolved CORS loopback error by ensuring `API_BASE_URL` is correctly prioritized during build and clinical logging added to `build.js`.
+
 ## [1.6.5] - 2026-03-16
 
 ### Changed

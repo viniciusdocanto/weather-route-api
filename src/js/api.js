@@ -1,6 +1,6 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-// Em produção, a URL é injetada estaticamente pelo esbuild (build.js) vinda do .env
-export const API_BASE = process.env.API_BASE_URL || (isLocalhost ? 'http://localhost:3000/api' : '');
+// A URL da API é injetada estaticamente durante o build.
+export const API_BASE = process.env.API_BASE_URL || '/api';
 
 const searchCache = new Map();
 
