@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.5] - 2026-03-16
+
+### Changed
+- **Config**: Fully migrated API URL configuration to environment variables. The frontend now strictly uses the `API_BASE_URL` defined in `.env` during the build process, facilitating decoupled hosting.
+
+## [1.6.4] - 2026-03-16
+
+### Changed
+- **Architecture**: Separated Frontend and Backend concerns. The frontend now defaults to pointing directly to the Render-hosted API, allowing hosting the static files in different providers (like Hostinger) without path resolution issues.
+
 ## [1.6.3] - 2026-03-16
 
 ### Fixed
