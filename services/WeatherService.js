@@ -21,37 +21,61 @@ class WeatherService {
         const finalResults = new Array(points.length);
 
         for (const [isoDate, groupPoints] of Object.entries(dateGroups)) {
-            try {
-                const lats = groupPoints.map(p => p.lat).join(',');
-                const lngs = groupPoints.map(p => p.lng).join(',');
-                
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&hourly=temperature_2m,weathercode&start_date=${isoDate}&end_date=${isoDate}&timezone=auto`;
-                
-                logger.debug(`Buscando clima em lote`, { date: isoDate, count: groupPoints.length });
-                const res = await axios.get(url, { timeout: 10000 });
-                
-                // O Open-Meteo retorna um array de objetos se houver múltiplas coordenadas
-                const dataArray = Array.isArray(res.data) ? res.data : [res.data];
+            let attempts = 0;
+            const maxAttempts = 2;
+            let success = false;
 
-                groupPoints.forEach((gp, i) => {
-                    const data = dataArray[i]?.hourly;
-                    const hour = gp.date.getHours();
+            while (attempts < maxAttempts && !success) {
+                try {
+                    attempts++;
+                    const lats = groupPoints.map(p => p.lat).join(',');
+                    const lngs = groupPoints.map(p => p.lng).join(',');
                     
-                    if (data && data.temperature_2m && data.temperature_2m[hour] !== undefined) {
-                        finalResults[gp.originalIdx] = {
-                            temp: data.temperature_2m[hour],
-                            condition: this.translateWMO(data.weathercode[hour])
-                        };
-                    } else {
-                        finalResults[gp.originalIdx] = { temp: "--", condition: "Sem dados" };
-                    }
-                });
+                    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&hourly=temperature_2m,weathercode&start_date=${isoDate}&end_date=${isoDate}&timezone=auto`;
+                    
+                    logger.debug(`Buscando clima em lote (Tentativa ${attempts})`, { date: isoDate, count: groupPoints.length });
+                    const res = await axios.get(url, { 
+                        timeout: 15000,
+                        headers: { 'User-Agent': 'WeatherTrip/1.6.7' }
+                    });
+                    
+                    const dataArray = Array.isArray(res.data) ? res.data : [res.data];
 
-            } catch (e) {
-                logger.error(`Erro ao buscar clima em lote`, { error: e.message, date: isoDate });
-                groupPoints.forEach(gp => {
-                    finalResults[gp.originalIdx] = { temp: "--", condition: "Erro de conexão" };
-                });
+                    groupPoints.forEach((gp, i) => {
+                        const data = dataArray[i]?.hourly;
+                        const hour = gp.date.getHours();
+                        
+                        if (data && data.temperature_2m && data.temperature_2m[hour] !== undefined) {
+                            finalResults[gp.originalIdx] = {
+                                temp: data.temperature_2m[hour],
+                                condition: this.translateWMO(data.weathercode[hour])
+                            };
+                        } else {
+                            finalResults[gp.originalIdx] = { temp: "--", condition: "Sem dados" };
+                        }
+                    });
+                    success = true;
+
+                } catch (e) {
+                    const status = e.response ? e.response.status : 'TIMEOUT/NETWORK';
+                    const errorMsg = e.response ? JSON.stringify(e.response.data) : e.message;
+                    
+                    logger.error(`Erro ao buscar clima em lote (Tentativa ${attempts})`, { 
+                        status, 
+                        error: errorMsg,
+                        url: attempts === 1 ? e.config?.url : undefined 
+                    });
+
+                    if (attempts >= maxAttempts) {
+                        groupPoints.forEach(gp => {
+                            const detail = status === 429 ? "Limite excedido" : "Erro de conexão";
+                            finalResults[gp.originalIdx] = { temp: "--", condition: detail };
+                        });
+                    } else {
+                        // Espera um pouco antes da próxima tentativa (500ms)
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
             }
         }
 
