@@ -15,11 +15,14 @@ if (fs.existsSync(path.join(__dirname, '.env'))) {
 // (Render usa NODE_ENV = 'production' por padrão)
 const isProd = process.env.NODE_ENV === 'production';
 
-// Se API_BASE_URL nao for definido no .env, usamos fallbacks neutros
+// Prioridade: 1. Variável de ambiente (OS ou .env) | 2. Fallback de Produção | 3. Fallback Local
 let API_BASE = process.env.API_BASE_URL;
 
 if (!API_BASE) {
     API_BASE = isProd ? '/api' : 'http://localhost:3000/api';
+    console.log(`⚠️  API_BASE_URL não encontrada. Usando fallback: ${API_BASE}`);
+} else {
+    console.log(`🌍 API configurada para: ${API_BASE}`);
 }
 
 // Pela a versão real do package.json para injetar sem precisar de fecth na API
