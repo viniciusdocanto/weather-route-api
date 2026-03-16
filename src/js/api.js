@@ -1,6 +1,7 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 // A URL da API é injetada estaticamente durante o build.
-export const API_BASE = process.env.API_BASE_URL || '/api';
+// Verifica typeof process para evitar ReferenceError no navegador
+export const API_BASE = (typeof process !== 'undefined' && process.env.API_BASE_URL) ? process.env.API_BASE_URL : '/api';
 
 const searchCache = new Map();
 

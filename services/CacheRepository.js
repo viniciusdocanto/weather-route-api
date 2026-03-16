@@ -3,7 +3,7 @@ const logger = require('../config/logger');
 
 class CacheRepository {
     constructor() {
-        this.CACHE_TTL = 3600 * 1000; // 1 hora de TTL
+        this.CACHE_TTL = 24 * 3600 * 1000; // 24 horas de TTL
     }
 
     checkCache(routeKey, dateKey) {
