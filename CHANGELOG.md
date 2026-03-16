@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3] - 2026-03-16
+
+### Fixed
+- **API**: Improved dynamic backend URL resolution to correctly handle subdirectory deployments (e.g., `sites.docanto.net/weathertrip/`).
+
 ## [1.6.2] - 2026-03-16
 
 ### Fixed
