@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.1] - 2026-03-17
+
+### Fixed
+- **API URL Injection**: Resolved critical bug where `script.min.js` was trying to fetch `/api` from its own domain (404) in production. Removed reliance on the Node-specific `process` object entirely in the browser build.
+
 ## [1.7.0] - 2026-03-17
 
 ### Added
