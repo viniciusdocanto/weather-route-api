@@ -7,7 +7,10 @@ let isFirstSearch = true;
 window.onload = function () {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('trip-date').value = now.toISOString().slice(0, 16);
+    const minDateTime = now.toISOString().slice(0, 16);
+    const dateInput = document.getElementById('trip-date');
+    dateInput.value = minDateTime;
+    dateInput.min = minDateTime;
 
     initMap();
 

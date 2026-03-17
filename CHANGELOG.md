@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.2] - 2026-03-17
+
+### Fixed
+- **UI**: Added `min` attribute validation to the trip date input (`#trip-date`) in the frontend to prevent users from selecting past dates and times.
+
 ## [1.7.1] - 2026-03-17
 
 ### Fixed
