@@ -2,6 +2,63 @@ import { searchAddress } from './api.js';
 
 let stopCount = 0;
 
+export function showToast(title, message, icon = '⚠️', type = 'amber') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'fixed top-4 right-4 z-50 flex flex-col gap-3 pointer-events-none';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    // Tailwind classes baseadas no 'type' para garantir a cor dinamicamente
+    const bgClass = type === 'indigo' 
+        ? 'bg-indigo-100 dark:bg-indigo-900 border-indigo-300 dark:border-indigo-700' 
+        : 'bg-amber-100 dark:bg-amber-900 border-amber-300 dark:border-amber-700';
+    const textClass = type === 'indigo' 
+        ? 'text-indigo-900 dark:text-indigo-100' 
+        : 'text-amber-900 dark:text-amber-100';
+    const iconWrapperClass = type === 'indigo' 
+        ? 'bg-indigo-200 dark:bg-indigo-800' 
+        : 'bg-amber-200 dark:bg-amber-800';
+
+    toast.className = `flex max-w-sm w-full shadow-lg rounded-2xl border ${bgClass} pointer-events-auto overflow-hidden transform transition-all duration-300 translate-x-full opacity-0`;
+    
+    toast.innerHTML = `
+        <div class="p-4 flex items-start w-full">
+            <div class="flex-shrink-0 ${iconWrapperClass} rounded-full p-2 mr-3 flex items-center justify-center">
+                <span class="text-xl">${icon}</span>
+            </div>
+            <div class="flex-1 pt-0.5">
+                <p class="text-sm font-bold ${textClass}">${title}</p>
+                <p class="mt-1 text-sm ${textClass} opacity-90">${message}</p>
+            </div>
+            <button class="ml-4 inline-flex text-slate-400 hover:text-slate-500 focus:outline-none transition-colors" onclick="this.closest('.flex.max-w-sm').remove()">
+                <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+    `;
+
+    container.appendChild(toast);
+
+    // Animate in (forcing a reflow to guarantee the transition kicks in)
+    void toast.offsetWidth;
+    setTimeout(() => {
+        toast.classList.remove('translate-x-full', 'opacity-0');
+        toast.classList.add('translate-x-0', 'opacity-100');
+    }, 10);
+
+    // Auto dismiss
+    setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
+}
+
 export function setupAutocomplete(inputId, listId) {
     let debounceTimer;
     const input = document.getElementById(inputId);

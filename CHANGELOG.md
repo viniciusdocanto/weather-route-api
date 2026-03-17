@@ -2,9 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.7.2] - 2026-03-17
+## [1.7.3] - 2026-03-17
+
+### Added
+- **UI**: Introduced animated Toast notifications (`#toast-container`) for non-invasive form validation feedback.
 
 ### Fixed
+- **UI**: Added a strict 15-day future limit on the trip-date picker. Enforced via HTML `max` attribute and real-time JavaScript event listeners (`change`, `blur`), with user-friendly Toast alerts preventing submission of past or out-of-bounds dates.
 - **UI**: Added `min` attribute validation to the trip date input (`#trip-date`) in the frontend to prevent users from selecting past dates and times.
 
 ## [1.7.1] - 2026-03-17

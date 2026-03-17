@@ -1,6 +1,6 @@
 import { fetchRouteForecast } from './api.js';
 import { initMap, updateMapRoute, clearMarkers, addMarker, map } from './map.js';
-import { setupAutocomplete, bindStopsUI, renderCheckpoint } from './ui.js';
+import { setupAutocomplete, bindStopsUI, renderCheckpoint, showToast } from './ui.js';
 
 let isFirstSearch = true;
 
@@ -8,9 +8,32 @@ window.onload = function () {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     const minDateTime = now.toISOString().slice(0, 16);
+
+    const maxDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000));
+    const maxDateTime = maxDate.toISOString().slice(0, 16);
+
     const dateInput = document.getElementById('trip-date');
-    dateInput.value = minDateTime;
     dateInput.min = minDateTime;
+    dateInput.max = maxDateTime;
+    dateInput.value = minDateTime;
+
+    function enforceDateLimits(e) {
+        if (!e.target.value) return;
+        const selected = new Date(e.target.value);
+        const currentNow = new Date();
+        const currentMax = new Date(currentNow.getTime() + (16 * 24 * 60 * 60 * 1000));
+
+        if (selected < new Date(currentNow.getTime() - 60000)) {
+            currentNow.setMinutes(currentNow.getMinutes() - currentNow.getTimezoneOffset());
+            e.target.value = currentNow.toISOString().slice(0, 16);
+        } else if (selected > currentMax) {
+            currentMax.setMinutes(currentMax.getMinutes() - currentMax.getTimezoneOffset());
+            e.target.value = currentMax.toISOString().slice(0, 16);
+        }
+    }
+
+    dateInput.addEventListener('change', enforceDateLimits);
+    dateInput.addEventListener('blur', enforceDateLimits);
 
     initMap();
 
@@ -27,28 +50,35 @@ window.onload = function () {
 window.calcularRota = async function calcularRota() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
-    
+
     const dateInput = document.getElementById('trip-date');
     let date = dateInput.value;
 
-    // Força a data para agora se o usuário tentar enviar uma data/hora no passado
+    // Limites de data: Mínimo = Agora (-1 min), Máximo = 15 dias no futuro
     const selectedDate = new Date(date);
     const now = new Date();
-    if (selectedDate < new Date(now.getTime() - 60000)) {
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        date = now.toISOString().slice(0, 16);
-        dateInput.value = date; // Atualiza a UI visualmente para o usuário
-    }
-
-    const stops = Array.from(document.querySelectorAll('#stops-container input'))
-        .map(input => input.value)
-        .filter(val => val.trim() !== "");
+    const maxDate = new Date(now.getTime() + (15 * 24 * 60 * 60 * 1000));
 
     const resultsDiv = document.getElementById('results');
     const mapContainer = document.getElementById('map-container');
     const mapOverlay = document.getElementById('map-overlay');
 
-    if (!origin || !destination) { alert("Preencha origem e destino!"); return; }
+    if (!origin || !destination) {
+        showToast("Quase lá!", "Por favor, preencha a cidade de origem e de destino para calcular a rota.", "📍", "amber");
+        return;
+    }
+
+    if (selectedDate < new Date(now.getTime() - 60000)) {
+        showToast("Viagem no tempo?", "A data da viagem não pode estar no passado. Por favor, ajuste o horário de partida.", "⏳", "amber");
+        return;
+    } else if (selectedDate > maxDate) {
+        showToast("Futuro distante!", "A previsão do tempo só alcança até 15 dias com precisão. Por favor, traga a data mais para perto.", "🔮", "indigo");
+        return;
+    }
+
+    const stops = Array.from(document.querySelectorAll('#stops-container input'))
+        .map(input => input.value)
+        .filter(val => val.trim() !== "");
 
     if (!isFirstSearch) {
         mapOverlay.classList.remove('opacity-0', 'pointer-events-none');
