@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.9] - 2026-03-16
+
+### Fixed
+- **CORS**: Simplified and strengthened CORS policy in `server.js` to resolve persistent production blocks from `sites.docanto.net`.
+
 ## [1.6.8] - 2026-03-16
 
 ### Fixed
