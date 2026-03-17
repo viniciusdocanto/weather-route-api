@@ -27,7 +27,18 @@ window.onload = function () {
 window.calcularRota = async function calcularRota() {
     const origin = document.getElementById('origin').value;
     const destination = document.getElementById('destination').value;
-    const date = document.getElementById('trip-date').value;
+    
+    const dateInput = document.getElementById('trip-date');
+    let date = dateInput.value;
+
+    // Força a data para agora se o usuário tentar enviar uma data/hora no passado
+    const selectedDate = new Date(date);
+    const now = new Date();
+    if (selectedDate < new Date(now.getTime() - 60000)) {
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        date = now.toISOString().slice(0, 16);
+        dateInput.value = date; // Atualiza a UI visualmente para o usuário
+    }
 
     const stops = Array.from(document.querySelectorAll('#stops-container input'))
         .map(input => input.value)
