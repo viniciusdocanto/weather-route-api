@@ -2,11 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.7.3] - 2026-03-17
-
-### Fixed
-- **UI**: Added JavaScript validation inside `calcularRota` to actively auto-correct past dates to the current date and time upon form submission, bypassing HTML `min` attribute limitations on button clicks.
-
 ## [1.7.2] - 2026-03-17
 
 ### Fixed
