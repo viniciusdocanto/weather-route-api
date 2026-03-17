@@ -1,7 +1,8 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-// Se estiver local, puxa `/api`. Caso contrário, usa a URL do ambiente (injetada no build).
-export const API_BASE = isLocalhost ? '/api' : (typeof process !== 'undefined' ? (process.env.API_BASE_URL || '/api') : '/api');
+// A URL da API é injetada estaticamente durante o build (__INJECTED_API_BASE_URL__)
+// Sem usar 'process' para evitar ReferenceError no navegador
+export const API_BASE = isLocalhost ? '/api' : (typeof __INJECTED_API_BASE_URL__ !== 'undefined' ? __INJECTED_API_BASE_URL__ : '/api');
 
 const searchCache = new Map();
 
