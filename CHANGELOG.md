@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-03-17
+
+### Added
+- **Environment**: New `CORS_ALLOWED_ORIGINS` variable in `.env` for multi-domain hosting management.
+- **Safety**: Robust `process` check in frontend to prevent runtime ReferenceErrors.
+
+### Changed
+- **Config**: Major refactoring of API URL resolution. Localhost now defaults to `/api` (proxy/same-port friendly), while production uses `API_BASE_URL` strictly.
+- **Security**: Moved all hardcoded production URLs from `server.js` to environment variables.
+
 ## [1.6.9] - 2026-03-16
 
 ### Fixed

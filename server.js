@@ -34,13 +34,18 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-const allowedOrigins = [
-    'https://sites.docanto.net',
-    'https://weather-route-api.onrender.com',
+// Carrega origens permitidas do .env ou usa defaults para permitir localhost dev
+const defaultAllowed = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
     'http://localhost:5173'
 ];
+
+const envAllowed = process.env.CORS_ALLOWED_ORIGINS 
+    ? process.env.CORS_ALLOWED_ORIGINS.split(',').map(o => o.trim()) 
+    : [];
+
+const allowedOrigins = [...new Set([...defaultAllowed, ...envAllowed])];
 
 app.use(cors({
     origin: function (origin, callback) {
@@ -55,9 +60,9 @@ app.use(cors({
         }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
     credentials: true,
-    optionsSuccessStatus: 200 // Resposta para navegadores legados (IE11, etc)
+    optionsSuccessStatus: 200
 }));
 app.use(express.json());
 
