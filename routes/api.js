@@ -18,9 +18,35 @@ const routing = new RoutingProviderService();
 const weather = new WeatherService();
 const orchestrator = new RouteWeatherOrchestrator(cacheRepo, geocoding, routing, weather);
 
+router.post('/route-options', async (req, res) => {
+    try {
+        const { origin, destination, stops } = req.body;
+
+        // --- VALIDAÇÃO DE INPUT ---
+        if (typeof origin !== 'string' || origin.length > 200 || origin.trim() === '') {
+            return res.status(400).json({ error: "Origem inválida ou muito longa (máx 200 caracteres)." });
+        }
+        if (typeof destination !== 'string' || destination.length > 200 || destination.trim() === '') {
+            return res.status(400).json({ error: "Destino inválido ou muito longo (máx 200 caracteres)." });
+        }
+
+        if (stops) {
+            if (!Array.isArray(stops) || stops.length > 10) {
+                return res.status(400).json({ error: "As paradas devem ser um array com no máximo 10 itens." });
+            }
+        }
+
+        const data = await orchestrator.getRouteOptions(origin, destination, stops || []);
+        res.json(data);
+    } catch (error) {
+        logger.error("Erro na rota /route-options", { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.post('/forecast', async (req, res) => {
     try {
-        const { origin, destination, stops, date } = req.body;
+        const { origin, destination, stops, date, routeIndex } = req.body;
 
         // --- VALIDAÇÃO DE INPUT (SEGURANÇA) ---
         if (typeof origin !== 'string' || origin.length > 200 || origin.trim() === '') {
@@ -43,7 +69,7 @@ router.post('/forecast', async (req, res) => {
             return res.status(400).json({ error: "Data fornecida é inválida." });
         }
 
-        const data = await orchestrator.getRouteForecast(origin, destination, stops || [], date);
+        const data = await orchestrator.getRouteForecast(origin, destination, stops || [], date, routeIndex || 0);
         res.json(data);
     } catch (error) {
         logger.error("Erro na rota /forecast", { error: error.message });

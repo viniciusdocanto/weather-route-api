@@ -135,6 +135,86 @@ export function bindStopsUI() {
         }
     };
 }
+export function formatDuration(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
+export function formatDistance(meters) {
+    const km = meters / 1000;
+    if (km < 1) return `${meters.toFixed(0)} m`;
+    return `${km.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} km`;
+}
+
+export function renderRouteOptions(routes, onSelect) {
+    const list = document.getElementById('route-options-list');
+    const container = document.getElementById('route-selector-container');
+    if (!list || !container) return;
+
+    list.innerHTML = '';
+    container.classList.remove('hidden');
+
+    routes.forEach((route, index) => {
+        const btn = document.createElement('button');
+        btn.className = `w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center justify-between group
+            ${index === 0 ? 'border-indigo-500 bg-indigo-50/30 dark:bg-indigo-900/40' : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800'}`;
+        
+        btn.innerHTML = `
+            <div class="flex-1">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full ${index === 0 ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-slate-600'}"></span>
+                    <span class="font-bold text-slate-800 dark:text-slate-100">${route.name}</span>
+                </div>
+                <div class="flex items-center gap-3 mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <span>⏱️ ${formatDuration(route.duration)}</span>
+                    <span>📏 ${formatDistance(route.distance)}</span>
+                </div>
+            </div>
+            <div class="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </div>
+        `;
+
+        btn.onclick = () => {
+            // Update active state visually
+            Array.from(list.children).forEach(child => {
+                child.classList.remove('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-900/40');
+                child.classList.add('border-slate-100', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800');
+                child.querySelector('span[class*="rounded-full"]').className = 'w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600';
+            });
+            btn.classList.add('border-indigo-500', 'bg-indigo-50/30', 'dark:bg-indigo-900/40');
+            btn.classList.remove('border-slate-100', 'dark:border-slate-700', 'bg-white', 'dark:bg-slate-800');
+            btn.querySelector('span[class*="rounded-full"]').className = 'w-2 h-2 rounded-full bg-indigo-500';
+
+            onSelect(index);
+        };
+
+        list.appendChild(btn);
+    });
+}
+
+export function updateNavigationLinks(origin, destination, stops = []) {
+    const gMapsBtn = document.getElementById('btn-google-maps');
+    const wazeBtn = document.getElementById('btn-waze');
+
+    if (!gMapsBtn || !wazeBtn) return;
+
+    // Google Maps Deep Link (Suporta waypoints)
+    // https://www.google.com/maps/dir/?api=1&origin=[Origem]&destination=[Destino]&waypoints=[Parada1]|[Parada2]
+    let gMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+    if (stops.length > 0) {
+        gMapsUrl += `&waypoints=${stops.map(s => encodeURIComponent(s)).join('|')}`;
+    }
+    gMapsBtn.href = gMapsUrl;
+
+    // Waze Deep Link (Geralmente leva apenas ao destino final de forma robusta)
+    // https://waze.com/ul?q=[Destino]&navigate=yes
+    const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(destination)}&navigate=yes`;
+    wazeBtn.href = wazeUrl;
+}
+
 export function renderCheckpoint(item, index, total) {
     const isStart = index === 0;
     const isEnd = index === total - 1;

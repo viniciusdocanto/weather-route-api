@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-04-06
+
+### Added
+- **Routing**: Support for alternative routes (Multiple Routes) with a 2-step selection process (Select Route -> Load Weather).
+- **Navigation**: Deep Links integration for Google Maps (with full waypoints) and Waze (destination).
+- **UX**: New Trip Summary header displaying formatted total duration and distance.
+- **UX**: Local Trip History saved in `localStorage` for quick re-entry of recent routes.
+- **Backend**: New `/api/route-options` endpoint for pre-fetching geometries without triggering weather API calls.
+ 
+## [1.8.1] - 2026-04-06
+ 
+### Fixed
+ - **UI**: Restored the initial results placeholder ("Onde a viagem vai levar você hoje?") by removing the `hidden` class from the results container on first load.
+
 ## [1.7.3] - 2026-03-17
 
 ### Added

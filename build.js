@@ -36,13 +36,16 @@ function injectVersion() {
     try {
         const filePath = path.join(__dirname, 'index.html');
         let content = fs.readFileSync(filePath, 'utf8');
+        const originalContent = content;
 
         // Atualiza query string de versão para CSS e JS
         content = content.replace(/style\.min\.css\?v=[\w.-]+/g, `style.min.css?v=${APP_VERSION}`);
         content = content.replace(/script\.min\.js\?v=[\w.-]+/g, `script.min.js?v=${APP_VERSION}`);
 
-        fs.writeFileSync(filePath, content);
-        console.log(`✅ Versionamento (v${APP_VERSION}) injetado no index.html`);
+        if (content !== originalContent) {
+            fs.writeFileSync(filePath, content);
+            console.log(`✅ Versionamento (v${APP_VERSION}) injetado no index.html`);
+        }
     } catch (err) {
         console.error('❌ Erro ao injetar versão no HTML:', err);
     }
@@ -82,14 +85,18 @@ async function buildJS() {
 buildJS();
 
 // 2. Build do SCSS com Tailwind CSS (PostCSS)
+let isCssBuilding = false;
 async function buildCSS() {
+    if (isCssBuilding) return;
+    isCssBuilding = true;
     try {
-        if (!fs.existsSync('src/scss/style.scss')) {
+        const scssPath = path.join(__dirname, 'src/scss/style.scss');
+        if (!fs.existsSync(scssPath)) {
             console.warn('⚠️ scss não encontrado, ignorando sass build');
             return;
         }
 
-        const sassResult = sass.compile('src/scss/style.scss');
+        const sassResult = sass.compile(scssPath);
 
         const postcss = require('postcss');
         const tailwindcss = require('tailwindcss');
@@ -98,18 +105,21 @@ async function buildCSS() {
         const postcssResult = await postcss([
             tailwindcss,
             autoprefixer
-        ]).process(sassResult.css, { from: 'src/scss/style.scss', to: 'assets/css/style.min.css' });
+        ]).process(sassResult.css, { from: scssPath, to: path.join(__dirname, 'assets/css/style.min.css') });
 
-        if (!fs.existsSync('assets/css')) fs.mkdirSync('assets/css', { recursive: true });
+        const cssDir = path.join(__dirname, 'assets/css');
+        if (!fs.existsSync(cssDir)) fs.mkdirSync(cssDir, { recursive: true });
 
         const finalMinified = await esbuild.transform(postcssResult.css, { loader: 'css', minify: true });
 
-        fs.writeFileSync('assets/css/style.min.css', finalMinified.code);
+        fs.writeFileSync(path.join(__dirname, 'assets/css/style.min.css'), finalMinified.code);
         console.log('✅ Compilação SCSS + Tailwind + Minificação concluída...');
         injectVersion();
 
     } catch (err) {
         console.error('❌ Erro no build do SCSS/Tailwind:', err);
+    } finally {
+        isCssBuilding = false;
     }
 }
 buildCSS();

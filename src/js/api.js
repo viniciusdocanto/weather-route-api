@@ -28,14 +28,29 @@ export async function searchAddress(query) {
     }
 }
 
-export async function fetchRouteForecast(origin, destination, stops, date) {
+export async function fetchRouteOptions(origin, destination, stops) {
+    const safeBase = API_BASE.replace(/\/$/, '');
+    const url = `${safeBase}/route-options`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin, destination, stops })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || `Erro HTTP: ${response.status}`);
+    return data;
+}
+
+export async function fetchRouteForecast(origin, destination, stops, date, routeIndex = 0) {
     const safeBase = API_BASE.replace(/\/$/, '');
     const API_URL = `${safeBase}/forecast`;
 
     const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ origin, destination, stops, date })
+        body: JSON.stringify({ origin, destination, stops, date, routeIndex })
     });
 
     const data = await response.json();

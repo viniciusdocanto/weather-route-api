@@ -44,7 +44,7 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 
     <!-- App CSS -->
-    <link rel="stylesheet" href="assets/css/style.min.css?v=1.7.3">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=1.8.0">
 
     <!-- Dark mode: aplicar antes do render para evitar flash branco -->
     <script>
@@ -97,9 +97,14 @@
                     </div>
 
                     <div class="relative">
-                        <label for="origin"
-                            class="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5 ml-1">Sair
-                            de</label>
+                        <div class="flex items-center justify-between mb-1.5 ml-1">
+                            <label for="origin" class="text-sm font-semibold text-slate-700 dark:text-slate-200">Sair
+                                de</label>
+                            <button id="history-btn" type="button"
+                                class="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline hidden">
+                                🕒 Viagens Recentes
+                            </button>
+                        </div>
                         <div class="relative">
                             <span class="absolute left-4 top-3.5 text-slate-400 pointer-events-none">📍</span>
                             <input type="text" id="origin" placeholder="Cidade de origem..." autocomplete="off"
@@ -174,11 +179,73 @@
                 </div>
             </div>
 
+            <!-- Seleção de Rotas Alternativas -->
+            <div id="route-selector-container" class="hidden animate-in fade-in duration-500">
+                <div class="flex flex-col gap-3">
+                    <h3 class="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider ml-1">
+                        Escolha seu trajeto:</h3>
+                    <div id="route-options-list" class="flex flex-col gap-2"></div>
+                </div>
+            </div>
+
             <!-- Timeline / Placeholder -->
             <div id="results"
                 class="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-3xl border border-white dark:border-slate-700 p-4 sm:p-6"
                 aria-live="polite">
-                <div
+                <div id="results-content" class="hidden space-y-6">
+                    <!-- Resumo da Viagem (Tempo/Distância) -->
+                    <div id="trip-summary"
+                        class="flex items-center justify-between p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/50">
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                ⏱️</div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Duração
+                                </p>
+                                <p id="total-duration" class="text-lg font-bold text-slate-800 dark:text-white">--</p>
+                            </div>
+                        </div>
+                        <div class="w-px h-8 bg-slate-200 dark:bg-slate-700"></div>
+                        <div class="flex items-center gap-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                                📏</div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Distância
+                                </p>
+                                <p id="total-distance" class="text-lg font-bold text-slate-800 dark:text-white">--</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline de Clima -->
+                    <div id="timeline"></div>
+
+                    <!-- Botões de Navegação Externa -->
+                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                        <a id="btn-google-maps" href="#" target="_blank"
+                            class="flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"
+                                    fill="#4285F4" />
+                            </svg>
+                            <span class="text-sm font-bold">Google Maps</span>
+                        </a>
+                        <a id="btn-waze" href="#" target="_blank"
+                            class="flex items-center justify-center gap-2 py-3 px-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm">
+                            <svg viewBox="0 0 24 24" class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" clip-rule="evenodd"
+                                    d="M18.86 14.44a4.13 4.13 0 0 0 .14-1c0-2.28-1.85-4.14-4.14-4.14-.1 0-.19.01-.29.02a7.19 7.19 0 0 0-6.85-4.63c-3.95 0-7.15 3.2-7.15 7.15 0 .17 0 .34.01.5a4.7 4.7 0 0 0 0 .54c0 2.53 1.9 4.67 4.27 4.96V20.5H9.5c.38 0 .73-.18.95-.47l.95-1.43h4.9a2.72 2.72 0 0 0 2.72-2.72c0-.37-.06-.73-.16-1.06l-.01.07zm-11.23-3.11c-.53 0-.95-.43-.95-.95 0-.53.43-.96.95-.96.53 0 .96.43.96.96 0 .52-.43.95-.96.95zm5.72 0c-.53 0-.96-.43-.96-.95 0-.53.43-.96.96-.96.53 0 .95.43.95.96 0 .52-.42.95-.95.95z"
+                                    fill="#33CCFF" />
+                            </svg>
+                            <span class="text-sm font-bold">Waze</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="results-placeholder"
                     class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 py-12 text-center">
                     <svg class="w-16 h-16 mb-4 text-slate-200 dark:text-slate-700" fill="none" stroke="currentColor"
                         viewBox="0 0 24 24">
@@ -217,7 +284,7 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <script src="assets/js/script.min.js?v=1.7.3"></script>
+    <script src="assets/js/script.min.js?v=1.8.0"></script>
 
     <script>
         const toggleBtn = document.getElementById('theme-toggle');

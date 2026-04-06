@@ -10,35 +10,59 @@ class RouteWeatherOrchestrator {
     }
 
     /**
-     * Fluxo principal: Geocoding -> Cache Check -> Routing -> Weather -> Response
+     * Passo 1: Retorna apenas as opções de rota sem clima
      */
-    async getRouteForecast(originText, destinationText, stopsTexts = [], dateString = '') {
+    async getRouteOptions(originText, destinationText, stopsTexts = []) {
+        try {
+            logger.info("Buscando opções de rota", { origin: originText, destination: destinationText });
+
+            const points = await this._geocodePoints(originText, destinationText, stopsTexts);
+            const routes = await this.routingService.getRouteWithFallback(points, true);
+
+            return {
+                points,
+                routes: routes.map(r => ({
+                    id: r.id,
+                    name: r.name,
+                    distance: r.distance,
+                    duration: r.duration,
+                    path: r.path,
+                    provider: r.provider
+                }))
+            };
+        } catch (error) {
+            logger.error("Erro ao buscar opções de rota", { error: error.message });
+            throw error;
+        }
+    }
+
+    /**
+     * Fluxo principal: Geocoding -> Cache Check -> Routing -> Weather -> Response
+     * @param {number} routeIndex - Índice da rota selecionada (0 se não informado)
+     */
+    async getRouteForecast(originText, destinationText, stopsTexts = [], dateString = '', routeIndex = 0) {
         try {
             const departureDate = dateString ? new Date(dateString) : new Date();
             const departureIsoKey = departureDate.toISOString().slice(0, 13);
 
-            logger.info("Iniciando cálculo de rota com previsão", { origin: originText, destination: destinationText, stops: stopsTexts.length });
+            logger.info("Iniciando cálculo de rota com previsão", { origin: originText, destination: destinationText, routeIndex });
 
             // 1. Geocoding
-            const points = [];
-            const locationNames = [originText, ...stopsTexts.filter(s => s.trim() !== ""), destinationText];
+            const points = await this._geocodePoints(originText, destinationText, stopsTexts);
 
-            for (const name of locationNames) {
-                const coord = await this.geocodingService.getCoordinates(name);
-                if (!coord) throw new Error(`Localidade não encontrada: ${name}`);
-                points.push({ ...coord, originalName: name });
-            }
-
-            // 2. Cache Check (Baseado em coordenadas e data)
-            const cacheKey = points.map(p => `${Number(p.lat).toFixed(4)},${Number(p.lng).toFixed(4)}`).join('|');
+            // 2. Cache Check (Baseado em coordenadas, data e rota selecionada)
+            const cacheKey = points.map(p => `${Number(p.lat).toFixed(4)},${Number(p.lng).toFixed(4)}`).join('|') + `|idx:${routeIndex}`;
             const cachedData = await this.cacheRepo.checkCache(cacheKey, departureIsoKey);
             if (cachedData) {
                 logger.info("Cache Hit - Rota recuperada", { cacheKey });
                 return cachedData;
             }
 
-            // 3. Routing (Com fallbacks automáticos)
-            const routeData = await this.routingService.getRouteWithFallback(points);
+            // 3. Routing (Com fallbacks automáticos e suporte a alternativas)
+            const routes = await this.routingService.getRouteWithFallback(points, routeIndex > 0);
+            const routeData = routes[routeIndex] || routes[0];
+
+            if (!routeData) throw new Error("Rota selecionada não encontrada para este trajeto.");
 
             // 4. Processar Checkpoints (Clima ao longo do tempo)
             const checkpoints = await this._processCheckpoints(routeData, departureDate, points);
@@ -48,7 +72,8 @@ class RouteWeatherOrchestrator {
                 checkpoints: checkpoints,
                 provider: routeData.provider,
                 distanceTotal: routeData.distance,
-                durationTotal: routeData.duration
+                durationTotal: routeData.duration,
+                routeName: routeData.name
             };
 
             // 5. Salvar no Cache
@@ -60,6 +85,18 @@ class RouteWeatherOrchestrator {
             logger.error("Erro no Orquestrador de Rota", { error: error.message, originText, destinationText });
             throw error;
         }
+    }
+
+    async _geocodePoints(originText, destinationText, stopsTexts = []) {
+        const points = [];
+        const locationNames = [originText, ...stopsTexts.filter(s => s.trim() !== ""), destinationText];
+
+        for (const name of locationNames) {
+            const coord = await this.geocodingService.getCoordinates(name);
+            if (!coord) throw new Error(`Localidade não encontrada: ${name}`);
+            points.push({ ...coord, originalName: name });
+        }
+        return points;
     }
 
     async _processCheckpoints(routeData, departureTime, userPoints = []) {

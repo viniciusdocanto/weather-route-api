@@ -4,14 +4,17 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 
 ## 🚀 Funcionalidades
 
+- **Múltiplas Rotas & Seleção:** O usuário agora pode escolher entre até 3 opções de trajeto (Principal e Alternativas) antes de carregar o clima.
+- **Resumo de Viagem Detalhado:** Exibição clara do tempo total (formato amigável) e distância em quilômetros.
+- **Navegação GPS Externa:** Botões dedicados para exportar a rota planejada para o Google Maps (mantendo paradas) ou Waze.
+- **Histórico Local de Viagens:** Atalho "Viagens Recentes" que salva os últimos trajetos no navegador para preenchimento instantâneo.
 - **Cálculo de Rota:** Estima tempo e distância real de direção.
 - **Tráfego com Múltiplas Paradas:** Suporte a adicionar múltiplas paradas intermediárias na viagem.
 - **Previsão Espaço-Temporal:** Cruza a posição do carro com a hora estimada de chegada para pegar a previsão do tempo correta (não a atual).
 - **Geocodificação Reversa:** Identifica o nome das cidades ao longo da rodovia.
-- **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta. A chave de cache é baseada em coordenadas, evitando duplicatas por variações de texto (ex.: "São Paulo" vs "Sao Paulo").
-- **Limpeza Automática de Cache:** Rotina periódica a cada 24h remove registros expirados do banco, evitando crescimento indefinido do arquivo `weather_trip.db`.
+- **Cache Inteligente:** Utiliza SQLite para salvar rotas consultadas (TTL de 1 hora), economizando requisições externas e acelerando a resposta.
 - **Autocomplete:** Frontend com busca de cidades integrada ao Mapbox/Nominatim.
-- **Modo Escuro (Dark Mode):** Suporte nativo a temas claro e escuro, com persistência via `localStorage` e detecção automática da preferência do sistema operacional.
+- **Modo Escuro (Dark Mode):** Suporte nativo a temas claro e escuro, com persistência via `localStorage`.
 - **Interface Dinâmica & Badges:** Timeline rica em detalhes com badges de status (**📍 Partida**, **🏁 Chegada**, **📌 Parada**) e ícones SVG responsivos.
 - **Segurança:** Prevenção contra abusos usando Rate Limit nas rotas da API, validação rigorosa de input no servidor para evitar ataques de DoS e mitigação de vulnerabilidades XSS (Cross-Site Scripting) via DOM.
 - **Resiliência do Frontend:** Tratamento robusto de erros HTTP em todas as chamadas `fetch`, garantindo feedback claro ao usuário mesmo em falhas de servidor ou limites de rede.
