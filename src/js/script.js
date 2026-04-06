@@ -202,7 +202,7 @@ async function selecionarRota(index) {
         });
 
         // Atualizar Links de Navegação
-        updateNavigationLinks(origin, destination, stops);
+        updateNavigationLinks(data);
 
         showToast("Clima Atualizado", `Previsão carregada para: ${data.routeName}`, "🌤️", "indigo");
 

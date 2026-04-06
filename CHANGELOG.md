@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
 - **UX**: Local Trip History saved in `localStorage` for quick re-entry of recent routes.
 - **Backend**: New `/api/route-options` endpoint for pre-fetching geometries without triggering weather API calls.
  
+## [1.8.2] - 2026-04-06
+ 
+### Added
+ - **UI**: Dynamic navigation links for Google Maps and Waze using precise coordinates and selected route waypoints.
+ 
 ## [1.8.1] - 2026-04-06
  
 ### Fixed

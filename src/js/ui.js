@@ -195,23 +195,30 @@ export function renderRouteOptions(routes, onSelect) {
     });
 }
 
-export function updateNavigationLinks(origin, destination, stops = []) {
+export function updateNavigationLinks(routeData) {
     const gMapsBtn = document.getElementById('btn-google-maps');
     const wazeBtn = document.getElementById('btn-waze');
 
-    if (!gMapsBtn || !wazeBtn) return;
+    if (!gMapsBtn || !wazeBtn || !routeData || !routeData.checkpoints) return;
 
-    // Google Maps Deep Link (Suporta waypoints)
-    // https://www.google.com/maps/dir/?api=1&origin=[Origem]&destination=[Destino]&waypoints=[Parada1]|[Parada2]
-    let gMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`;
+    const checkpoints = routeData.checkpoints;
+    const origin = checkpoints[0];
+    const destination = checkpoints[checkpoints.length - 1];
+    const stops = checkpoints.filter((c, idx) => idx !== 0 && idx !== checkpoints.length - 1 && c.isStopNode);
+
+    // Google Maps Deep Link (Suporta coordenadas e waypoints)
+    // https://www.google.com/maps/dir/?api=1&origin=LAT,LNG&destination=LAT,LNG&waypoints=LAT1,LNG1|LAT2,LNG2
+    let gMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}`;
+    
     if (stops.length > 0) {
-        gMapsUrl += `&waypoints=${stops.map(s => encodeURIComponent(s)).join('|')}`;
+        const waypoints = stops.map(s => `${s.lat},${s.lng}`).join('|');
+        gMapsUrl += `&waypoints=${encodeURIComponent(waypoints)}`;
     }
     gMapsBtn.href = gMapsUrl;
 
-    // Waze Deep Link (Geralmente leva apenas ao destino final de forma robusta)
-    // https://waze.com/ul?q=[Destino]&navigate=yes
-    const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(destination)}&navigate=yes`;
+    // Waze Deep Link (Usa coordenadas do destino para navegação direta)
+    // https://waze.com/ul?ll=LAT,LNG&navigate=yes
+    const wazeUrl = `https://waze.com/ul?ll=${destination.lat},${destination.lng}&navigate=yes`;
     wazeBtn.href = wazeUrl;
 }
 
