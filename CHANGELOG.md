@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.9.0] - 2026-10-21
+
+### Added
+- **E2E Testing**: Integrated Playwright (`@playwright/test`) with isolated local test server execution (port 3333).
+- **E2E Testing**: Added `tests/e2e/home.spec.js` for initial page layout, branding, inputs, and placeholders.
+- **E2E Testing**: Added `tests/e2e/dark-mode.spec.js` testing theme toggling and `localStorage` persistence.
+- **E2E Testing**: Added `tests/e2e/form-validation.spec.js` testing empty submission toast notifications, dynamic stop addition/removal, and date constraints.
+- **E2E Testing**: Added `tests/e2e/trip-flow.spec.js` simulating complete end-to-end trip calculation, route alternative selection, timeline rendering, and GPS navigation links.
+- **Scripts**: Added `"test:e2e"`, `"test:e2e:ui"`, and `"test:all"` to `package.json`.
+
+### Fixed
+- **Ignore**: Added Playwright test artifacts (`playwright-report/`, `blob-report/`, `playwright/.cache/`) to `.gitignore`.
+- **Cache Busting**: Synchronized frontend assets versioning in `index.html` with current application version (v1.9.0).
+
 ## [1.8.4] - 2026-10-21
 
 ### Added

@@ -46,6 +46,7 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 - Concurrently (Execução paralela de servidor e build em desenvolvimento)
 - Sass (Pré-processador de CSS nativo)
 - Sharp (Conversor e Esmagador de imagens node de altíssima velocidade)
+- Playwright (Testes End-to-End automatizados para UI e fluxos de navegação)
 **APIs Externas (Gratuitas/Open Source):**
 - 🗺️ **Mapbox Geocoding:** Geocodificação (Texto ↔ Coordenadas) (Principal).
 - 🗺️ **Nominatim (OSM):** Geocodificação (Texto ↔ Coordenadas) (Fallback caso Mapbox falhe).
@@ -94,9 +95,9 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 
 ## 🧪 Testes
 
-O projeto utiliza o **Node.js Native Test Runner** para garantir a integridade dos serviços modulares e rotas de API.
+O projeto conta com uma pirâmide de testes completa, abrangendo testes unitários e de integração com o **Node.js Native Test Runner**, além de testes End-to-End (E2E) com o **Playwright**.
 
-### Como rodar os testes:
+### 1. Testes Unitários e de Integração (Node.js Native Test Runner)
 ```bash
 npm test
 ```
@@ -111,6 +112,25 @@ Os testes cobrem:
 - Integridade da estrutura de resposta da API de clima.
 - Fluxo de negócio do Orquestrador usando **Mocks (DI)**.
 - Validação de entradas e endpoints da API HTTP (`/api/version`, `/api/route-options`, `/api/forecast`, `/api/search`).
+
+### 2. Testes End-to-End (Playwright)
+```bash
+# Executa todos os testes E2E headless
+npm run test:e2e
+
+# Executa os testes E2E com interface gráfica interativa
+npm run test:e2e:ui
+```
+Os testes E2E cobrem:
+- Renderização inicial da página, formulários e placeholders (`tests/e2e/home.spec.js`).
+- Alternância e persistência do Modo Escuro via `localStorage` (`tests/e2e/dark-mode.spec.js`).
+- Validações de entrada, toasts de erro, paradas dinâmicas e limites de datas (`tests/e2e/form-validation.spec.js`).
+- Jornada completa do usuário: busca, seleção de trajeto alternativo, renderização de timeline de clima e links para Google Maps/Waze (`tests/e2e/trip-flow.spec.js`).
+
+### 3. Rodar Toda a Suíte
+```bash
+npm run test:all
+```
 
 ## 📄 Licença
 

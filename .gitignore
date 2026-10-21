@@ -49,3 +49,8 @@ assets/img/
 assets/js/
 test-results/
 .sqlite-journal
+
+# Playwright
+playwright-report/
+blob-report/
+playwright/.cache/
