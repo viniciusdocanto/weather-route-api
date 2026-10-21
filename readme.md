@@ -94,7 +94,7 @@ Uma aplicação Fullstack que calcula a rota entre duas cidades e fornece a prev
 
 ## 🧪 Testes
 
-O projeto utiliza o **Node.js Native Test Runner** para garantir a integridade dos serviços modulares.
+O projeto utiliza o **Node.js Native Test Runner** para garantir a integridade dos serviços modulares e rotas de API.
 
 ### Como rodar os testes:
 ```bash
@@ -104,11 +104,13 @@ Ou individualmente:
 ```bash
 node tests/test-core.js
 node tests/orchestrator-di.test.js
+node tests/api.test.js
 ```
 Os testes cobrem:
 - Validação de tradução de códigos WMO (Meteorologia).
 - Integridade da estrutura de resposta da API de clima.
 - Fluxo de negócio do Orquestrador usando **Mocks (DI)**.
+- Validação de entradas e endpoints da API HTTP (`/api/version`, `/api/route-options`, `/api/forecast`, `/api/search`).
 
 ## 📄 Licença
 

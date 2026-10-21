@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.4] - 2026-10-21
+
+### Added
+- **Testing**: Added `tests/api.test.js` covering HTTP API routes (`/api/version`, input validation on `/api/route-options`, input and date validation on `/api/forecast`, empty query handling on `/api/search`).
+- **Testing**: Expanded `npm test` script in `package.json` to automatically execute all unit and integration test suites.
+
+### Fixed
+- **Database**: Unreferenced background cache cleanup interval (`cleanupTimer.unref()`) in `config/database.js` to allow Node.js processes, tests, and CI runs to terminate cleanly.
+- **Dependencies**: Synchronized `package-lock.json` and updated non-breaking dependencies within semver ranges.
+- **Cache Busting**: Synchronized frontend assets versioning in `index.html` with current application version (v1.8.4).
+
 ## [1.8.3] - 2026-10-21
 
 ### Added
