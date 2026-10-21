@@ -1,12 +1,12 @@
 {
   "name": "weather-route-api",
-  "version": "1.8.3",
+  "version": "1.8.4",
   "main": "server.js",
   "scripts": {
     "build": "node build.js",
     "start": "node build.js && node server.js",
     "dev": "concurrently \"node build.js --watch\" \"nodemon server.js\"",
-    "test": "node --test tests/orchestrator-di.test.js tests/test-core.js"
+    "test": "node --test tests/orchestrator-di.test.js tests/test-core.js tests/api.test.js"
   },
   "dependencies": {
     "axios": "^1.14.0",

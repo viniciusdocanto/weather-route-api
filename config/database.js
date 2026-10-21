@@ -22,7 +22,7 @@ db.run(`CREATE TABLE IF NOT EXISTS route_cache (
 const CLEANUP_INTERVAL = 24 * 3600 * 1000; // 24 horas
 const CACHE_TTL = 3600 * 1000; // 1 hora de TTL
 
-setInterval(() => {
+const cleanupTimer = setInterval(() => {
     const cutoff = Date.now() - CACHE_TTL;
     db.run(`DELETE FROM route_cache WHERE created_at < ?`, [cutoff], function (err) {
         if (err) {
@@ -32,5 +32,9 @@ setInterval(() => {
         }
     });
 }, CLEANUP_INTERVAL);
+
+if (cleanupTimer.unref) {
+    cleanupTimer.unref();
+}
 
 module.exports = db;
