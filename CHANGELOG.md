@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.3] - 2026-10-21
+
+### Added
+- **Testing**: Added official `"test"` script in `package.json` with Node.js native test runner (`node --test`).
+
+### Fixed
+- **Testing**: Fixed `MockRouting` in `tests/orchestrator-di.test.js` to return an array of routes matching the multi-route architecture introduced in v1.8.0+.
+- **Map**: Replaced CartoDB Voyager tiles (which started requiring an API key and showing watermarks) with OpenStreetMap standard tiles and Esri World Street Map error fallback, requiring no API key.
+- **Security & Dependencies**: Executed `npm audit fix` reducing security vulnerabilities and updated `caniuse-lite` database.
+- **Cache Busting**: Synchronized frontend assets versioning in `index.html` with current application version (v1.8.3).
+
+## [1.8.2] - 2026-04-06
+
+### Added
+- **UI**: Dynamic navigation links for Google Maps and Waze using precise coordinates and selected route waypoints.
+
+## [1.8.1] - 2026-04-06
+
+### Fixed
+- **UI**: Restored the initial results placeholder ("Onde a viagem vai levar você hoje?") by removing the `hidden` class from the results container on first load.
+
 ## [1.8.0] - 2026-04-06
 
 ### Added
@@ -10,16 +31,6 @@ All notable changes to this project will be documented in this file.
 - **UX**: New Trip Summary header displaying formatted total duration and distance.
 - **UX**: Local Trip History saved in `localStorage` for quick re-entry of recent routes.
 - **Backend**: New `/api/route-options` endpoint for pre-fetching geometries without triggering weather API calls.
- 
-## [1.8.2] - 2026-04-06
- 
-### Added
- - **UI**: Dynamic navigation links for Google Maps and Waze using precise coordinates and selected route waypoints.
- 
-## [1.8.1] - 2026-04-06
- 
-### Fixed
- - **UI**: Restored the initial results placeholder ("Onde a viagem vai levar você hoje?") by removing the `hidden` class from the results container on first load.
 
 ## [1.7.3] - 2026-03-17
 

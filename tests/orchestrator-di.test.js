@@ -21,12 +21,14 @@ class MockGeocoding {
 
 class MockRouting {
     async getRouteWithFallback() {
-        return {
+        return [{
+            id: 'route-0',
+            name: 'Rota Principal',
             path: [[-46, -23], [-46.1, -23.1]],
             duration: 3600,
             distance: 50000,
             provider: 'MockProvider'
-        };
+        }];
     }
 }
 

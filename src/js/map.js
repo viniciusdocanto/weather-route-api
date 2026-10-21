@@ -5,12 +5,21 @@ export let markersLayer = null;
 export function initMap() {
     map = L.map('map').setView([-14.235, -51.925], 4);
 
-    // Provedor CartoDB Voyager (mais estável e visual premium)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
+    // Provedor OpenStreetMap com fallback para Esri World Street Map (100% gratuitos e sem necessidade de API key)
+    const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
-    }).addTo(map);
+    });
+
+    osmLayer.on('tileerror', function (error) {
+        if (error.tile && !error.tile._hasFallback) {
+            error.tile._hasFallback = true;
+            const { z, x, y } = error.coords;
+            error.tile.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`;
+        }
+    });
+
+    osmLayer.addTo(map);
 
     markersLayer = L.layerGroup().addTo(map);
 }

@@ -98,6 +98,10 @@ O projeto utiliza o **Node.js Native Test Runner** para garantir a integridade d
 
 ### Como rodar os testes:
 ```bash
+npm test
+```
+Ou individualmente:
+```bash
 node tests/test-core.js
 node tests/orchestrator-di.test.js
 ```
